@@ -1,0 +1,94 @@
+{
+  // Agent's role title — appears in prompts and logs.
+  // You can use {placeholder} inputs in role, goal, or backstory.
+  // Example: "role": "Senior {industry} Researcher"
+  "role": "Catalyst & Re-rating Agent",
+
+  // Optional custom Agent subclass
+  // "type": {"python": "my_project.agents.CustomAgent"},
+
+  // The agent's primary objective
+  "goal": "\u65e2\u306b\u9855\u5728\u5316\u3057\u3066\u3044\u308b\u89e6\u5a92\u3060\u3051\u3067\u306a\u304f\u3001\u6f5c\u5728\u7684\u306a\u518d\u8a55\u4fa1\u8981\u56e0\u3082\u542b\u3081\u3066\u8a55\u4fa1\u3059\u308b",
+
+  // Background story that shapes the agent's personality and approach
+  "backstory": "\u3042\u306a\u305f\u306f\u518d\u8a55\u4fa1\u306e\u89e6\u5a92\u3092\u691c\u51fa\u30fb\u8a55\u4fa1\u3059\u308b Catalyst & Re-rating Agent \u3067\u3059\u3002\u9855\u5728\u89e6\u5a92\uff08\u81ea\u793e\u682a\u8cb7\u3044\u3001\u5897\u914d\u3001DOE\u5c0e\u5165\u3001\u4e8b\u696d\u58f2\u5374\u3001\u6301\u3061\u5408\u3044\u89e3\u6d88\u3001\u696d\u7e3e\u4e0a\u65b9\u4fee\u6b63\u306a\u3069\uff09\u3068\u6f5c\u5728\u89e6\u5a92\uff08\u653f\u7b56\u4fdd\u6709\u682a\u524a\u6e1b\u5727\u529b\u3001\u30ac\u30d0\u30ca\u30f3\u30b9\u6539\u5584\u3001\u696d\u754c\u518d\u7de8\u306e\u53ef\u80fd\u6027\u3001\u8cc7\u672c\u52b9\u7387\u6539\u5584\u3078\u306e\u7d4c\u55b6\u59ff\u52e2\u306a\u3069\uff09\u3092\u8a55\u4fa1\u3059\u308b\u3002\u5f37\u5ea6\u306f\u300c\u5f37\u3044\u30fb\u4e2d\u7a0b\u5ea6\u30fb\u5f31\u3044\u30fb\u306a\u3057\u300d\u3067\u5224\u5b9a\u3057\u3001\u5b58\u5728\u3057\u306a\u3044\u89e6\u5a92\u3092\u5275\u4f5c\u3057\u306a\u3044\u3002\u512a\u5148\u30c7\u30fc\u30bf\u30bd\u30fc\u30b9\u306f\u5404\u793eIR\u30fb\u9069\u6642\u958b\u793a\u3001\u682a\u63a2\u30cb\u30e5\u30fc\u30b9\u3001Yahoo!\u30d5\u30a1\u30a4\u30ca\u30f3\u30b9\u30cb\u30e5\u30fc\u30b9\u3002",
+
+  // LLM model in provider/model format
+  // Examples: "openai/gpt-4o", "anthropic/claude-sonnet-4-6", "ollama/llama3.3"
+  // For custom endpoints or deployment-based providers, replace with:
+  // "llm": {"model": "llama3", "provider": "ollama", "base_url": "http://localhost:11434"},
+  // "llm": {"deployment_name": "my-deployment", "provider": "azure", "api_version": "2024-10-21"},
+  "llm": "anthropic/claude-opus-5",
+
+  // Override LLM used specifically for tool/function calling
+  // "function_calling_llm": "openai/gpt-5.4-mini",
+
+  // Tools available to this agent
+  // Built-in: "SerperDevTool", "ScrapeWebsiteTool", "FileReadTool", etc.
+  // Custom: "custom:my_tool" loads from tools/my_tool.py
+  "tools": ["SerperDevTool", "ScrapeWebsiteTool", "DirectoryReadTool", "FileReadTool", "FileWriterTool"],
+
+  // Optional agent-level guardrail — validates this agent's final output.
+  // String guardrails are checked by an LLM and can reject/retry output.
+  // Python refs must point to module-level functions/classes in trusted code.
+  // "guardrail": "Only answer with information supported by retrieved evidence.",
+  // "step_callback": {"python": "my_project.callbacks.on_agent_step"},
+  // "guardrail_max_retries": 2,
+
+  // Advanced agent options:
+  // Docs: https://docs.crewai.com/concepts/agents
+  // "reasoning": true,
+  // "max_reasoning_attempts": 3,
+  // "planning_config": {
+  //   "reasoning_effort": "medium",
+  //   "llm": {"model": "deepseek-chat", "provider": "deepseek"}
+  // },
+  // "multimodal": false,
+  // "allow_code_execution": false,
+  // "code_execution_mode": "safe",
+  // "knowledge_sources": [],
+  // "knowledge_config": {},
+  // "inject_date": true,
+  // "date_format": "%Y-%m-%d",
+  // "security_config": {},
+
+  // Agent behavior settings
+  "settings": {
+    // Show detailed execution logs
+    "verbose": false,
+
+    // Allow this agent to delegate tasks to other agents in the crew
+    "allow_delegation": false,
+
+    // Maximum reasoning iterations per task (prevents infinite loops)
+    // "max_iter": 25,
+
+    // Maximum tokens for agent's response generation
+    // "max_tokens": null,
+
+    // Maximum execution time in seconds
+    // "max_execution_time": null,
+
+    // Maximum LLM requests per minute (rate limiting)
+    // "max_rpm": null,
+
+    // Enable agent-level memory (persists across tasks)
+    // "memory": false,
+
+    // Cache tool results to avoid duplicate calls
+    // "cache": true,
+
+    // Auto-summarize context when it exceeds the LLM's context window
+    // "respect_context_window": true,
+
+    // Maximum retries on execution errors
+    // "max_retry_limit": 2,
+
+    // Enable step-by-step planning before task execution
+    "planning": true
+
+    // Include system prompt in LLM calls
+    // "use_system_prompt": true
+
+  }
+}

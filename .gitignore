@@ -1,0 +1,19 @@
+.env
+__pycache__/
+.DS_Store
+report.md
+
+# ---------------------------------------------------------------------------
+# DỮ LIỆU LẤY VỀ KHÔNG LÊN GIT — chỉ KẾT QUẢ sau phân tích mới lên, để xem.
+#
+# Ranh giới: thứ nào là bản sao của cái vendor trả về thì ở ngoài; thứ nào
+# pipeline tính ra thì ở trong. Lý do kép — repo này public, và một bản sao
+# file gốc của JPX/Yahoo nằm trên GitHub là phát hành lại dữ liệu của họ,
+# khác hẳn với việc tự tải về mà dùng.
+#
+# Muốn dựng lại: chạy median_pipeline.py / screen_pipeline.py, chúng tự tải.
+runs/*/raw/
+runs/*/yahoo_info_cache.json
+runs/*/universe_quotes.csv
+runs/*/prime_all_quotes.csv
+runs/*/benchmark_perpbr_*.json

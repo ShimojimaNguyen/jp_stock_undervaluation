@@ -18,7 +18,7 @@ from src.crew.escalating import make_escalating_agent
 from src.params import Params
 
 # Lưới grep tất định cho chữ khuyến nghị; lưới Jev (pillar_guard) chạy riêng.
-_RECO = re.compile(r"nên mua|nên bán|giá mục tiêu|買い推奨|売り推奨|目標株価|target price|"
+_RECO = re.compile(r"nên mua|nên bán|giá mục tiêu|買い推奨|売り推奨|目標株価|target price|"  # pillar-ok: danh sách CẤM của guardrail, không hiển thị
                    r"\bbuy\b|\bsell\b|だろう", re.IGNORECASE)
 
 

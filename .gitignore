@@ -17,3 +17,10 @@ runs/*/yahoo_info_cache.json
 runs/*/universe_quotes.csv
 runs/*/prime_all_quotes.csv
 runs/*/benchmark_perpbr_*.json
+
+# Flow 10-bagger: bản sao dữ liệu nguồn (vendor) — không lên git.
+# Chỉ artifact đã tính (data/tenbagger-candidates.json, schemas/) được commit.
+data/ohlcv/
+data/tdnet/
+data/fundamentals/
+data/jev-cache.jsonl

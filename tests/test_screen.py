@@ -189,3 +189,11 @@ def test_json_fundamentals_roundtrip_idempotent(tmp_path, fundamentals):
 def test_annual_result_requires_source():
     with pytest.raises(ValidationError):
         AnnualResult(fiscal_period="2026.03", as_of=D)  # thiếu source
+
+
+def test_rnd_returns_python_float_for_numpy():
+    import numpy as np
+
+    v = rnd(np.float64(1.999), 4)
+    assert type(v) is float
+    assert ge(np.float64(1.999), 2.0, 4) is False   # `is False` phải đúng, không phải np.False_

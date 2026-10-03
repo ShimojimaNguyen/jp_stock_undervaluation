@@ -6,7 +6,10 @@ import math
 
 def rnd(x: float | None, ndigits: int) -> float | None:
     """Làm tròn TRƯỚC khi so ngưỡng (0.82−0.67 = 0.1499999… không được trượt 0.15)."""
-    if x is None or (isinstance(x, float) and not math.isfinite(x)):
+    if x is None:
+        return None
+    x = float(x)  # numpy scalar → float: np.False_ `is False` là False, sẽ lọt cổng
+    if not math.isfinite(x):
         return None
     return round(x, ndigits)
 

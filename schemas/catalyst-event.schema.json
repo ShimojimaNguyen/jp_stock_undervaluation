@@ -14,6 +14,7 @@
       "enum": [
         "upward_revision",
         "downward_revision",
+        "forecast_revision",
         "dividend_increase",
         "dividend_cut",
         "buyback",

@@ -68,6 +68,7 @@ class ThesisStatus(str, Enum):
 class CatalystType(str, Enum):
     UPWARD_REVISION = "upward_revision"          # 上方修正
     DOWNWARD_REVISION = "downward_revision"      # 下方修正
+    FORECAST_REVISION = "forecast_revision"      # 業績予想の修正 — tiêu đề không nói hướng
     DIVIDEND_INCREASE = "dividend_increase"      # 増配
     DIVIDEND_CUT = "dividend_cut"                # 減配
     BUYBACK = "buyback"                          # 自己株式取得

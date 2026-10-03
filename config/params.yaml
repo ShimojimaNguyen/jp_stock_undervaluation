@@ -69,6 +69,7 @@ catalyst:
     stock_split: LOW
     tender_offer: HIGH
     downward_revision: NEGATIVE
+    forecast_revision: LOW                  # 業績予想の修正 không rõ hướng — hướng phải đọc bằng code từ 短信
     dividend_cut: NEGATIVE
     extraordinary_loss: NEGATIVE
     upgrade_likely: MEDIUM

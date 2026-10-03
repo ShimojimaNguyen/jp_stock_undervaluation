@@ -150,7 +150,10 @@ def evaluate_code(code: str, f: Fundamentals | None, snap: PriceSnapshot | None,
         adtv_s = Sourced.of(v, ohlcv["date"].iat[-1], OHLCV_SOURCE, Quality.LIVE)
 
     mcap = market_cap(price, f.shares_issued, f.treasury_shares)
-    uni = universe_gate(code, f.market, mcap, adtv_s, p.universe, as_of)
+    # Bước 1 được dùng 時価総額 nguồn in sẵn làm PROXY khi chưa có 発行済/自己株;
+    # bước 3 (net cash ratio) thì KHÔNG — chỉ công thức 清原.
+    uni_mcap = mcap if mcap.value is not None else f.market_cap_reported
+    uni = universe_gate(code, f.market, uni_mcap, adtv_s, p.universe, as_of)
     grw = growth_gate(f, p.growth)
     val = valuation(f, price, mcap, p.valuation)
     chk = build_checklist(code, judgments, f.backlog, f.holders, p.checklist)
@@ -194,51 +197,102 @@ def _session_closed(as_of: date) -> bool:
     return as_of < now.date() or (now.hour, now.minute) >= (15, 30)
 
 
+class PriceChain:
+    """Giá: snapshot kiyohara trước (ưu tiên, không fetch trùng), rồi trang 株探 đã lưu."""
+
+    def __init__(self, sources: list):
+        self.sources = sources
+        self.name = " → ".join(x.name for x in sources) or "không có"
+
+    def snapshot(self, code: str) -> PriceSnapshot | None:
+        for src in self.sources:
+            try:
+                s = src.snapshot(code)
+            except FileNotFoundError:
+                continue
+            if s is not None and s.close.value is not None:
+                return s
+        return None
+
+
+def fundamentals_coverage(codes: list[str], fs) -> float:
+    if not codes:
+        return 0.0
+    have = 0
+    for c in codes:
+        f = fs.get(c)
+        if f is not None and f.annual:
+            have += 1
+    return have / len(codes)
+
+
 def main(argv: list[str] | None = None) -> int:
     from src.data.adapters import JsonFundamentalsSource, KiyoharaSnapshotSource
+    from src.data.kabutan_finance import KabutanPriceSource
     from src.jev.registry import default_registry
     from src.params import default_params
     from src.signals.gainers import completed_sessions, fetch_chart
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--fundamentals-source", required=True)
+    ap.add_argument("--universe", default=None, help="data/universe.json (JPX)")
     ap.add_argument("--snapshot", default=None)
+    ap.add_argument("--data-dir", default=str(ROOT / "data"))
     ap.add_argument("--tdnet-dir", default=str(ROOT / "data" / "tdnet"))
-    ap.add_argument("--fetch-ohlcv", action="store_true")
+    ap.add_argument("--fetch-ohlcv", action="store_true",
+                    help="tải OHLCV cho mã QUA bước 2 (mã khác là NONE, không cần)")
+    ap.add_argument("--min-coverage", type=float, default=0.8)
     ap.add_argument("--as-of", default=None)
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--out", default=str(EXPORT_PATH))
     a = ap.parse_args(argv)
 
     p = default_params()
     reg = default_registry()
     cache = JudgmentCache(ROOT / p.jev.cache_path)
     as_of = date.fromisoformat(a.as_of) if a.as_of else date.today()
-    fs = JsonFundamentalsSource(a.fundamentals_source)
-    snaps = KiyoharaSnapshotSource(a.snapshot)
-    codes = fs.codes()
+    fs = JsonFundamentalsSource(a.fundamentals_source, base=Path(a.data_dir) / "fundamentals")
+    prices = PriceChain([KiyoharaSnapshotSource(a.snapshot), KabutanPriceSource(a.data_dir)])
+    markets: dict[str, str] = {}
+    if a.universe:
+        uni = json.loads(Path(a.universe).read_text(encoding="utf-8"))
+        codes = [u["code"] for u in uni["codes"]]
+        markets = {u["code"]: u["market"] for u in uni["codes"]}
+    else:
+        codes = fs.codes()
     if a.limit:
         codes = codes[:a.limit]
+    cov = fundamentals_coverage(codes, fs)
     cats, pending = load_catalysts(Path(a.tdnet_dir), as_of, p, reg, cache)
 
     cands, failures = [], []
     for code in codes:
         f = fs.get(code)
-        ohlcv = None
-        if a.fetch_ohlcv:
+        if f is not None and f.market is None and code in markets:
+            f = f.model_copy(update={"market": markets[code]})
+        js = judgments_for(code, f.text_evidence if f else [], reg, cache,
+                           checklist_question_ids(p))
+        snap = prices.snapshot(code)
+        c = evaluate_code(code, f, snap, None, js, cats.get(code, []), as_of, p)
+        if a.fetch_ohlcv and c.scorecard.growth and c.scorecard.growth.passed:
             try:
                 ohlcv = completed_sessions(fetch_chart(code, p.signals.user_agent), as_of,
                                            market_closed=_session_closed(as_of))
                 time.sleep(p.signals.request_delay_s)
+                c = evaluate_code(code, f, snap, ohlcv, js, cats.get(code, []), as_of, p)
             except Exception as e:  # noqa: BLE001 — đếm, không lấp
                 failures.append(f"{code}: ohlcv {type(e).__name__}")
-        js = judgments_for(code, f.text_evidence if f else [], reg, cache,
-                           checklist_question_ids(p))
-        cands.append(evaluate_code(code, f, snaps.snapshot(code), ohlcv, js,
-                                   cats.get(code, []), as_of, p))
-    notes = [f"nguồn cơ bản: {fs.name}", f"nguồn giá: {snaps.name}",
-             f"tiêu đề TDnet chưa có phán đoán Jev: {pending}"]
-    out = write_export(build_export(cands, as_of, p, failures, notes), sample=bool(a.limit))
-    print(out)
+        cands.append(c)
+    notes = [f"nguồn cơ bản: {fs.name} (phủ {cov:.1%} universe)", f"nguồn giá: {prices.name}",
+             f"tiêu đề TDnet chưa có phán đoán Jev: {pending}",
+             "net cash 清原 cần EDINET (流動資産/投資有価証券/負債合計/発行済/自己株) — thiếu thì null"]
+    exp = build_export(cands, as_of, p, failures, notes)
+    if not a.limit and cov < a.min_coverage:
+        print(f"độ phủ cơ bản {cov:.1%} < {a.min_coverage:.0%} — KHÔNG ghi đè artifact production")
+        write_export(exp, sample=True, path=Path(a.out))
+        return 0
+    print(write_export(exp, sample=bool(a.limit), path=Path(a.out)))
+    print(json.dumps(exp.counts, ensure_ascii=False))
     return 0
 
 

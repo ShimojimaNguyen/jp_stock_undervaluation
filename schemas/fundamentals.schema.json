@@ -10,10 +10,17 @@
           "type": "string"
         },
         "months": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "default": 12,
-          "description": "≠12 = kỳ đổi niên độ (変) — không dùng cho CAGR",
-          "title": "Months",
-          "type": "integer"
+          "description": "≠12 hoặc None (変, không rõ số tháng) = kỳ đổi niên độ — không dùng cho CAGR",
+          "title": "Months"
         },
         "revenue": {
           "anyOf": [
@@ -305,6 +312,12 @@
         "fiscal_period": {
           "title": "Fiscal Period",
           "type": "string"
+        },
+        "irregular": {
+          "default": false,
+          "description": "kỳ đổi niên độ (変) — không so được với năm 12 tháng",
+          "title": "Irregular",
+          "type": "boolean"
         },
         "revenue": {
           "anyOf": [
@@ -665,6 +678,9 @@
       },
       "title": "Quarters",
       "type": "array"
+    },
+    "market_cap_reported": {
+      "$ref": "#/$defs/Sourced"
     },
     "shares_issued": {
       "$ref": "#/$defs/Sourced"

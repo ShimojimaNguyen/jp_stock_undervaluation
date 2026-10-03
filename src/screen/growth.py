@@ -33,7 +33,7 @@ def revenue_cagr(f: Fundamentals, years: int) -> tuple[float | None, str | None]
 
 def forecast_is_current(f: Fundamentals) -> bool:
     """Dự báo phải là cho kỳ SAU năm thực hiện gần nhất, không phải dự báo cũ."""
-    if f.forecast is None or not f.annual:
+    if f.forecast is None or not f.annual or f.forecast.irregular:
         return False
     return f.forecast.fiscal_period > f.annual[-1].fiscal_period
 

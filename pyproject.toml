@@ -12,6 +12,7 @@ dependencies = [
     "pydantic>=2.7",
     "pyyaml>=6.0",
     "requests>=2.31",
+    "xlrd>=2.0",                # JPX data_j là .xls (OLE2) — pandas cần xlrd
 ]
 
 [dependency-groups]

@@ -131,7 +131,7 @@ class AnnualResult(_Model):
     """Một năm tài chính ĐÃ THỰC HIỆN (実績), 連結 nếu có."""
 
     fiscal_period: str = Field(description="vd '2026.03'")
-    months: int = Field(12, description="≠12 = kỳ đổi niên độ (変) — không dùng cho CAGR")
+    months: int | None = Field(12, description="≠12 hoặc None (変, không rõ số tháng) = kỳ đổi niên độ — không dùng cho CAGR")
     revenue: float | None = None             # JPY
     operating_profit: float | None = None    # JPY
     net_income: float | None = None          # JPY
@@ -146,6 +146,7 @@ class Forecast(_Model):
     """Dự báo của CÔNG TY (会社予想) cho năm tài chính kế tiếp/hiện tại."""
 
     fiscal_period: str
+    irregular: bool = Field(False, description="kỳ đổi niên độ (変) — không so được với năm 12 tháng")
     revenue: float | None = None
     operating_profit: float | None = None
     eps: float | None = None
@@ -205,6 +206,7 @@ class Fundamentals(_Model):
     forecast: Forecast | None = None
     balance_sheet: BalanceSheet | None = None
     quarters: list[QuarterResult] = Field(default_factory=list)  # cũ → mới
+    market_cap_reported: Sourced = Field(default_factory=Sourced)  # 時価総額 nguồn in sẵn — CHỈ làm proxy cho bước 1
     shares_issued: Sourced = Field(default_factory=Sourced)      # 発行済株式数
     treasury_shares: Sourced = Field(default_factory=Sourced)    # 自己株式数
     holders: list[Holder] | None = None

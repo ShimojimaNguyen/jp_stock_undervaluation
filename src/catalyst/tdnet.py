@@ -324,3 +324,39 @@ def write_day(day: date, rows: list[Disclosure], base: str | Path) -> Path:
 def read_day(path: str | Path) -> list[Disclosure]:
     return [Disclosure.from_json(json.loads(line))
             for line in Path(path).read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def main(argv: list[str] | None = None) -> int:
+    """uv run python -m src.catalyst.tdnet --days 5 — tải N ngày gần nhất (idempotent theo ngày)."""
+    import argparse
+    from datetime import timedelta as _td
+
+    from src.params import default_params
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--days", type=int, default=5)
+    ap.add_argument("--out", default="data/tdnet")
+    ap.add_argument("--end", default=None, help="YYYY-MM-DD, mặc định hôm nay")
+    a = ap.parse_args(argv)
+    p = default_params().catalyst
+    end = date.fromisoformat(a.end) if a.end else date.today()
+    total, failed = 0, []
+    for k in range(a.days):
+        d = end - _td(days=k)
+        if d.weekday() >= 5:
+            continue
+        try:
+            rows = fetch_day(d, p)
+        except PermissionError:
+            raise
+        except Exception as e:  # noqa: BLE001 — một ngày lỗi không xoá ngày khác
+            failed.append(f"{d}: {type(e).__name__}")
+            continue
+        write_day(d, rows, a.out)
+        total += len(rows)
+    print(f"tdnet: {total} công bố, lỗi {failed}")
+    return 1 if failed else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

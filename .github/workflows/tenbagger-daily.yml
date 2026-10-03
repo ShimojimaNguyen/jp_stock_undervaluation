@@ -1,0 +1,113 @@
+name: tenbagger-daily
+
+# Chạy flow 10-bagger thật ở chỗ có mạng: JPX, 株探, TDnet, Yahoo chart v8, Jev.
+# Môi trường dựng code (Claude Code cloud) chặn các host này nên KHÔNG chạy ở đó.
+#
+# NHỊP: 07:45 UTC thứ Hai–Sáu = 16:45 JST, sau khi TSE đóng cửa (15:30).
+# 株探 có Crawl-delay 3s → toàn TSE (~3.800 mã) ≈ 3,4 giờ. Chia 5 shard theo thứ
+# trong tuần (~45 phút/ngày): mỗi mã được làm mới mỗi tuần — đủ, vì dữ liệu
+# năm/dự báo đổi theo quý. Lần đầu: chạy tay với shard=all.
+#
+# DỮ LIỆU NGUỒN không lên git (bản sao vendor, repo public) → giữ giữa các lần
+# chạy bằng actions/cache. CHỈ data/tenbagger-candidates.json được commit, và chỉ
+# khi độ phủ cơ bản ≥ 80% universe (pipeline tự chặn).
+#
+# Secrets (Settings → Secrets → Actions): TYPESAFE_API_KEY (Jev — thiếu thì bỏ
+# qua checklist ngữ nghĩa), EDINET_API_KEY (net cash 清原 — chưa nối).
+
+on:
+  schedule:
+    - cron: "45 7 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      shard:
+        description: "i/5, hoặc 'all' cho lần nạp đầu (~3,4 giờ)"
+        default: "auto"
+      limit:
+        description: "giới hạn số mã 株探 (0 = không) — chế độ thử"
+        default: "0"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tenbagger-daily
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    env:
+      # secrets không dùng trực tiếp trong `if:` được → đưa ra cờ ở mức job
+      HAS_JEV: ${{ secrets.TYPESAFE_API_KEY != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+
+      - name: Khôi phục dữ liệu nguồn
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            data/universe.json
+            data/fundamentals
+            data/prices
+            data/tdnet
+            data/jev-cache.jsonl
+          key: tenbagger-data-${{ github.run_id }}
+          restore-keys: tenbagger-data-
+
+      - name: Universe JPX (thứ Hai hoặc khi chưa có)
+        run: |
+          if [ ! -f data/universe.json ] || [ "$(date -u +%u)" = "1" ]; then
+            uv run python -m src.data.jpx_universe --out data/universe.json \
+              || echo "::warning::JPX lỗi — giữ universe cũ"
+          fi
+          test -f data/universe.json
+
+      - name: 株探 /stock/finance
+        run: |
+          shard="${{ github.event.inputs.shard || 'auto' }}"
+          if [ "$shard" = "auto" ]; then shard="$(( $(date -u +%u) - 1 ))/5"; fi
+          if [ "$shard" = "all" ]; then shard="0/1"; fi
+          uv run python -m src.data.kabutan_finance --universe data/universe.json \
+            --shard "$shard" --limit "${{ github.event.inputs.limit || '0' }}"
+
+      - name: TDnet (5 ngày gần nhất, chỉ metadata)
+        run: uv run python -m src.catalyst.tdnet --days 5 || echo "::warning::TDnet lỗi một phần"
+
+      - name: Jev batch (mã qua bước 2 + tiêu đề TDnet không khớp rule)
+        if: env.HAS_JEV == 'true'
+        env:
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+        run: uv run python -m src.jev.run --fundamentals-source kabutan || echo "::warning::Jev lỗi một phần"
+
+      - name: Pipeline 8 bước
+        run: |
+          uv run python -m src.pipeline --fundamentals-source kabutan \
+            --universe data/universe.json --fetch-ohlcv
+
+      - name: Lưu dữ liệu nguồn
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            data/universe.json
+            data/fundamentals
+            data/prices
+            data/tdnet
+            data/jev-cache.jsonl
+          key: tenbagger-data-${{ github.run_id }}
+
+      - name: Commit artifact nếu đổi
+        run: |
+          f=data/tenbagger-candidates.json
+          [ -f "$f" ] || { echo "chưa có artifact (độ phủ chưa đủ) — không commit"; exit 0; }
+          git add "$f"
+          if git diff --cached --quiet; then echo "không đổi"; exit 0; fi
+          git config user.name "tenbagger-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git commit -m "data: tenbagger-candidates $(date -u +%F)"
+          git push

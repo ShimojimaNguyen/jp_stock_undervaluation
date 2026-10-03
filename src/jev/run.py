@@ -17,12 +17,16 @@ from src.jev.client import JevClient, JevItem, JudgmentCache, build_state, judge
 from src.jev.registry import default_registry
 from src.params import default_params
 from src.pipeline import ROOT, checklist_question_ids, title_evidence
+from src.screen.growth import growth_gate
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--fundamentals-source", default=None)
     ap.add_argument("--tdnet-dir", default=str(ROOT / "data" / "tdnet"))
+    ap.add_argument("--data-dir", default=str(ROOT / "data"))
+    ap.add_argument("--all", action="store_true",
+                    help="hỏi mọi mã; mặc định chỉ mã QUA bước 2 (mã khác là NONE, checklist vô dụng)")
     a = ap.parse_args(argv)
 
     p = default_params()
@@ -30,10 +34,12 @@ def main(argv: list[str] | None = None) -> int:
     cache = JudgmentCache(ROOT / p.jev.cache_path)
     items: list[JevItem] = []
     if a.fundamentals_source:
-        fs = JsonFundamentalsSource(a.fundamentals_source)
+        fs = JsonFundamentalsSource(a.fundamentals_source, base=Path(a.data_dir) / "fundamentals")
         qs = [reg[q] for q in checklist_question_ids(p) if q in reg]
         for code in fs.codes():
             f = fs.get(code)
+            if not a.all and not growth_gate(f, p.growth).passed:
+                continue
             items.append(JevItem(code, build_state(code, f.name, f.text_evidence),
                                  f.text_evidence, qs))
     tdir = Path(a.tdnet_dir)

@@ -74,6 +74,8 @@ class CatalystParams(_P):
 
 
 class SignalParams(_P):
+    user_agent: str
+    request_delay_s: float
     gainer_min_change: float
     volume_mult_min: float
     volume_avg_window: int
@@ -92,6 +94,7 @@ class ThesisParams(_P):
     weakening_revenue_yoy_drop: float
     broken_revenue_yoy_max: float
     opm_drop_weakening: float
+    catalyst_lookback_days: int
     rsi_high_is_sell_signal_for_10x: bool
 
 
@@ -100,6 +103,8 @@ class TierParams(_P):
     a_catalyst_min_strength: CatalystStrength
     b_checklist_min: int
     checklist_total: int
+    catalyst_lookback_days: int
+    b_requires_universe: bool
 
 
 class JevParams(_P):

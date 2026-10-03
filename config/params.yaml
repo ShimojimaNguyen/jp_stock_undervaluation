@@ -77,6 +77,8 @@ catalyst:
 
 # --- Bước 6: thời điểm mua ----------------------------------------------------
 signals:
+  user_agent: "jp-stock-undervaluation/0.1 (research)"   # chart v8 bắt buộc UA
+  request_delay_s: 1.0
   gainer_min_change: 0.03
   volume_mult_min: 2.0
   volume_avg_window: 20                     # TB 20 phiên TRƯỚC phiên xét (loại phiên hiện tại)
@@ -95,6 +97,7 @@ thesis:
   weakening_revenue_yoy_drop: 0.05          # tăng trưởng doanh thu YoY giảm ≥5 điểm % so với quý trước
   broken_revenue_yoy_max: 0.0               # doanh thu YoY ≤ 0 → BROKEN
   opm_drop_weakening: 0.01                  # OPM giảm ≥1 điểm % YoY
+  catalyst_lookback_days: 180               # cửa sổ xét 下方修正/減配 và "mất catalyst"
   rsi_high_is_sell_signal_for_10x: false    # KHÔNG đổi — quyết định của user
 
 # --- Bước 8: phân tầng --------------------------------------------------------
@@ -103,6 +106,8 @@ tiers:
   a_catalyst_min_strength: MEDIUM
   b_checklist_min: 2
   checklist_total: 5
+  catalyst_lookback_days: 180               # catalyst còn hiệu lực trong N ngày trước as_of (không tính ngày sau as_of)
+  b_requires_universe: true                 # diễn giải: B cũng phải qua bước 1 (đề bài chỉ ghi rõ cho A)
 
 # --- Jev ----------------------------------------------------------------------
 jev:

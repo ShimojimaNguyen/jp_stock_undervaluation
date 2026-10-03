@@ -109,11 +109,12 @@ jev:
   endpoint: "https://api.typesafe.ai/v1/systemone"
   model: "jev-latest"
   user_agent: "jp-stock-undervaluation/0.1"
-  noul_accept_min: 0.70                     # noul ≥ 0,70 → đúng; ≤ 0,30 → sai; giữa → null (luật 3)
+  noul_accept_min: 0.70                     # = STRONG của kiyohara (đo trên câu fx). noul ≥ 0,70 → đúng; ≤ 0,30 → sai; giữa → null (luật 3)
   noul_reject_max: 0.30
-  choice_confidence_min: 0.60               # dưới ngưỡng → null (luật 2)
+  choice_confidence_min: 0.85               # dưới ngưỡng → null (luật 2). 0,85 = CONF_MIN kiyohara ĐO trên câu wholesale; CHƯA đo trên câu của repo này
   timeout_s: 60
   cache_path: "data/jev-cache.jsonl"
+  questions_dir: "questions"
 
 # --- LLM crew (Arbiter + Writer) ---------------------------------------------
 llm:

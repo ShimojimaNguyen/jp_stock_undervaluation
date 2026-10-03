@@ -111,6 +111,7 @@ class JevParams(_P):
     choice_confidence_min: float
     timeout_s: float
     cache_path: str
+    questions_dir: str
 
 
 class LLMParams(_P):

@@ -1,0 +1,38 @@
+{
+  "additionalProperties": false,
+  "description": "Arbiter chỉ PHÂN XỬ mâu thuẫn giữa các bằng chứng đã có — không tính số.",
+  "properties": {
+    "code": {
+      "title": "Code",
+      "type": "string"
+    },
+    "conflicts": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Conflicts",
+      "type": "array"
+    },
+    "resolution": {
+      "enum": [
+        "keep_tier",
+        "flag_for_review",
+        "insufficient_evidence"
+      ],
+      "title": "Resolution",
+      "type": "string"
+    },
+    "rationale": {
+      "title": "Rationale",
+      "type": "string"
+    }
+  },
+  "required": [
+    "code",
+    "conflicts",
+    "resolution",
+    "rationale"
+  ],
+  "title": "ArbiterVerdict",
+  "type": "object"
+}

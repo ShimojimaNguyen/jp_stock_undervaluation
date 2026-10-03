@@ -1,0 +1,124 @@
+# Mọi ngưỡng của flow 10-bagger nằm ở đây — code KHÔNG được hardcode số nào
+# trong số này. Đổi ngưỡng = sửa file này + commit (để thay đổi hiện trong diff).
+#
+# Đơn vị ghi ngay cạnh mỗi tham số (pillar §8). Tiền: yên (JPY), không phải 億.
+version: "0.1.0"
+
+# --- Bước 1: universe ---------------------------------------------------------
+universe:
+  markets: [PRIME, STANDARD, GROWTH]
+  market_cap_min_jpy: 5_000_000_000        # 50億円
+  market_cap_max_jpy: 100_000_000_000      # 1000億円
+  adtv_window_days: 20                      # bình quân 20 phiên GẦN NHẤT (không gồm phiên chưa đóng)
+  adtv_min_jpy: 30_000_000                  # 3000万円 — đề xuất, user có thể đổi
+
+# --- Bước 2: lọc tăng trưởng (bắt buộc) -------------------------------------
+growth:
+  revenue_cagr_years: 3                     # cần 4 năm doanh thu thực hiện
+  revenue_cagr_min: 0.15
+  op_forecast_growth_min: 0.20              # dự báo OP công ty so với OP thực hiện năm gần nhất
+  opm_improving: true                       # OPM dự báo > OPM năm gần nhất (hoặc năm gần nhất > năm trước nếu thiếu dự báo → không qua)
+  cfo_min_jpy: 0                            # CFO > 0 (nghiêm ngặt)
+  equity_ratio_min: 0.40
+  round_ndigits: 4                          # làm tròn tỷ lệ trước khi so ngưỡng (jev-judgments luật 4)
+
+# --- Bước 3: định giá ---------------------------------------------------------
+valuation:
+  peg_max_tier_a: 1.0
+  peg_max_tier_b: 1.5
+  eps_growth_cap: 0.50                      # cap tăng trưởng EPS ở 50% khi tính PEG
+  # 清原 net cash: 流動資産 + 投資有価証券 × haircut − 負債合計
+  investment_securities_haircut: 0.7
+  net_cash_ratio_min_tier_a: 0.30
+  round_ndigits: 4
+
+# --- Bước 4: checklist @shikiho_10 --------------------------------------------
+checklist:
+  items: [niche_share, theme, recurring_revenue, record_backlog, insider_ownership]
+  themes: [defense, space, ai_datacenter, semiconductor, disaster_prevention]
+  insider_ownership_min: 0.20               # tổng % sở hữu của founder/ban lãnh đạo (大株主 + 役員持株)
+  backlog_record_lookback_years: 5          # backlog kỳ gần nhất ≥ max các kỳ trước trong N năm
+
+# --- Bước 5: catalyst ---------------------------------------------------------
+catalyst:
+  tdnet_base_url: "https://www.release.tdnet.info/inbs/"
+  tdnet_user_agent: "jp-stock-undervaluation/0.1 (research; metadata only)"
+  request_delay_s: 3.2                      # giãn ≥3s/request (chưa đọc được robots TDnet — xem docs)
+  cutoff_hhmm: "15:00"                      # công bố từ 15:00 trở đi → hiệu lực phiên kế tiếp
+  # Ngày nghỉ sàn ngoài thứ 7/CN. Phải cập nhật hằng năm từ lịch JPX.
+  market_holidays: []
+  # Tiến độ OP luỹ kế/dự báo năm so với trung bình lịch sử cùng quý
+  upgrade_progress_margin: 0.05             # vượt trung bình lịch sử ≥5 điểm % → "có khả năng nâng dự báo"
+  upgrade_min_history_years: 3
+  # Tiêu chí Prime (市場区分変更) — số lấy theo hiểu biết, CẦN đối chiếu
+  # bản 上場審査基準 hiện hành của JPX trước khi dùng thật.
+  prime:
+    shareholders_min: 800
+    tradable_units_min: 20000
+    tradable_market_cap_min_jpy: 10_000_000_000
+    tradable_ratio_min: 0.35
+    market_cap_min_jpy: 25_000_000_000
+    net_assets_min_jpy: 5_000_000_000
+    profit_2y_sum_min_jpy: 2_500_000_000
+  strength:                                 # bậc mặc định theo loại; 中 trở lên mới tính cho tầng A
+    upward_revision: HIGH
+    dividend_increase: MEDIUM
+    buyback: MEDIUM
+    mid_term_plan: MEDIUM
+    market_change: HIGH
+    stock_split: LOW
+    tender_offer: HIGH
+    downward_revision: NEGATIVE
+    dividend_cut: NEGATIVE
+    extraordinary_loss: NEGATIVE
+    upgrade_likely: MEDIUM
+    prime_eligible: MEDIUM
+
+# --- Bước 6: thời điểm mua ----------------------------------------------------
+signals:
+  gainer_min_change: 0.03
+  volume_mult_min: 2.0
+  volume_avg_window: 20                     # TB 20 phiên TRƯỚC phiên xét (loại phiên hiện tại)
+  high_window_days: 252                     # 52 tuần ≈ 252 phiên
+  bottom_drawdown_min: 0.40
+  range_short_window: 10
+  range_long_window: 60
+  range_contraction_max: 0.5                # biên độ TB 10 phiên / biên độ TB 60 phiên ≤ 0,5
+  rsi_period: 14
+  rsi_oversold: 30
+  rsi_lookback_days: 20                     # RSI từng ≤30 trong 20 phiên và giờ đã > 30
+  round_ndigits: 4
+
+# --- Bước 7: theo dõi ---------------------------------------------------------
+thesis:
+  weakening_revenue_yoy_drop: 0.05          # tăng trưởng doanh thu YoY giảm ≥5 điểm % so với quý trước
+  broken_revenue_yoy_max: 0.0               # doanh thu YoY ≤ 0 → BROKEN
+  opm_drop_weakening: 0.01                  # OPM giảm ≥1 điểm % YoY
+  rsi_high_is_sell_signal_for_10x: false    # KHÔNG đổi — quyết định của user
+
+# --- Bước 8: phân tầng --------------------------------------------------------
+tiers:
+  a_checklist_min: 3
+  a_catalyst_min_strength: MEDIUM
+  b_checklist_min: 2
+  checklist_total: 5
+
+# --- Jev ----------------------------------------------------------------------
+jev:
+  endpoint: "https://api.typesafe.ai/v1/systemone"
+  model: "jev-latest"
+  user_agent: "jp-stock-undervaluation/0.1"
+  noul_accept_min: 0.70                     # noul ≥ 0,70 → đúng; ≤ 0,30 → sai; giữa → null (luật 3)
+  noul_reject_max: 0.30
+  choice_confidence_min: 0.60               # dưới ngưỡng → null (luật 2)
+  timeout_s: 60
+  cache_path: "data/jev-cache.jsonl"
+
+# --- LLM crew (Arbiter + Writer) ---------------------------------------------
+llm:
+  ladder:
+    - anthropic/claude-haiku-4-5-20251001
+    - anthropic/claude-sonnet-5-5
+    - anthropic/claude-opus-5-5
+  failures_before_escalate: 2
+  guardrail_max_retries: 5

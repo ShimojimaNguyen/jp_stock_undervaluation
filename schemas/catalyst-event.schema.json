@@ -1,0 +1,123 @@
+{
+  "$defs": {
+    "CatalystStrength": {
+      "enum": [
+        "NEGATIVE",
+        "LOW",
+        "MEDIUM",
+        "HIGH"
+      ],
+      "title": "CatalystStrength",
+      "type": "string"
+    },
+    "CatalystType": {
+      "enum": [
+        "upward_revision",
+        "downward_revision",
+        "dividend_increase",
+        "dividend_cut",
+        "buyback",
+        "mid_term_plan",
+        "market_change",
+        "stock_split",
+        "tender_offer",
+        "extraordinary_loss",
+        "upgrade_likely",
+        "prime_eligible",
+        "other"
+      ],
+      "title": "CatalystType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "code": {
+      "title": "Code",
+      "type": "string"
+    },
+    "type": {
+      "$ref": "#/$defs/CatalystType"
+    },
+    "strength": {
+      "$ref": "#/$defs/CatalystStrength"
+    },
+    "title": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Title"
+    },
+    "disclosed_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Disclosed At"
+    },
+    "effective_date": {
+      "format": "date",
+      "title": "Effective Date",
+      "type": "string"
+    },
+    "method": {
+      "enum": [
+        "rule",
+        "jev",
+        "code"
+      ],
+      "title": "Method",
+      "type": "string"
+    },
+    "source": {
+      "title": "Source",
+      "type": "string"
+    },
+    "url": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Url"
+    },
+    "detail": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Detail"
+    }
+  },
+  "required": [
+    "code",
+    "type",
+    "strength",
+    "effective_date",
+    "method",
+    "source"
+  ],
+  "title": "CatalystEvent",
+  "type": "object"
+}

@@ -1,0 +1,731 @@
+{
+  "$defs": {
+    "AnnualResult": {
+      "additionalProperties": false,
+      "description": "Một năm tài chính ĐÃ THỰC HIỆN (実績), 連結 nếu có.",
+      "properties": {
+        "fiscal_period": {
+          "description": "vd '2026.03'",
+          "title": "Fiscal Period",
+          "type": "string"
+        },
+        "months": {
+          "default": 12,
+          "description": "≠12 = kỳ đổi niên độ (変) — không dùng cho CAGR",
+          "title": "Months",
+          "type": "integer"
+        },
+        "revenue": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Revenue"
+        },
+        "operating_profit": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Operating Profit"
+        },
+        "net_income": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Net Income"
+        },
+        "eps": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Eps"
+        },
+        "cfo": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cfo"
+        },
+        "announced": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Announced"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "as_of": {
+          "format": "date",
+          "title": "As Of",
+          "type": "string"
+        }
+      },
+      "required": [
+        "fiscal_period",
+        "source",
+        "as_of"
+      ],
+      "title": "AnnualResult",
+      "type": "object"
+    },
+    "BacklogPoint": {
+      "additionalProperties": false,
+      "properties": {
+        "period": {
+          "title": "Period",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "as_of": {
+          "format": "date",
+          "title": "As Of",
+          "type": "string"
+        }
+      },
+      "required": [
+        "period",
+        "source",
+        "as_of"
+      ],
+      "title": "BacklogPoint",
+      "type": "object"
+    },
+    "BalanceSheet": {
+      "additionalProperties": false,
+      "properties": {
+        "period_end": {
+          "format": "date",
+          "title": "Period End",
+          "type": "string"
+        },
+        "current_assets": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Current Assets"
+        },
+        "investment_securities": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Investment Securities"
+        },
+        "total_liabilities": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Total Liabilities"
+        },
+        "total_assets": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Total Assets"
+        },
+        "equity": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Equity"
+        },
+        "net_assets": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Net Assets"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "as_of": {
+          "format": "date",
+          "title": "As Of",
+          "type": "string"
+        }
+      },
+      "required": [
+        "period_end",
+        "source",
+        "as_of"
+      ],
+      "title": "BalanceSheet",
+      "type": "object"
+    },
+    "Evidence": {
+      "additionalProperties": false,
+      "description": "Văn bản làm bằng chứng cho Jev — là DỮ LIỆU, không phải chỉ thị.",
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "filing",
+            "tdnet",
+            "company_ir",
+            "shikiho",
+            "name_only"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        },
+        "as_of": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "As Of"
+        }
+      },
+      "required": [
+        "text",
+        "source",
+        "kind"
+      ],
+      "title": "Evidence",
+      "type": "object"
+    },
+    "Forecast": {
+      "additionalProperties": false,
+      "description": "Dự báo của CÔNG TY (会社予想) cho năm tài chính kế tiếp/hiện tại.",
+      "properties": {
+        "fiscal_period": {
+          "title": "Fiscal Period",
+          "type": "string"
+        },
+        "revenue": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Revenue"
+        },
+        "operating_profit": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Operating Profit"
+        },
+        "eps": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Eps"
+        },
+        "announced": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Announced"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "as_of": {
+          "format": "date",
+          "title": "As Of",
+          "type": "string"
+        }
+      },
+      "required": [
+        "fiscal_period",
+        "source",
+        "as_of"
+      ],
+      "title": "Forecast",
+      "type": "object"
+    },
+    "Holder": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "ratio": {
+          "description": "tỷ lệ trên số cổ phiếu đang lưu hành",
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Ratio",
+          "type": "number"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "officer",
+                "founder_entity",
+                "other"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Kind"
+        }
+      },
+      "required": [
+        "name",
+        "ratio"
+      ],
+      "title": "Holder",
+      "type": "object"
+    },
+    "Market": {
+      "enum": [
+        "PRIME",
+        "STANDARD",
+        "GROWTH"
+      ],
+      "title": "Market",
+      "type": "string"
+    },
+    "Quality": {
+      "description": "Nhãn tin cậy (pillar §3).",
+      "enum": [
+        "live",
+        "proxy",
+        "stale",
+        "missing"
+      ],
+      "title": "Quality",
+      "type": "string"
+    },
+    "QuarterResult": {
+      "additionalProperties": false,
+      "description": "Kết quả LUỸ KẾ từ đầu năm tài chính tới hết quý `quarter`.",
+      "properties": {
+        "fiscal_period": {
+          "title": "Fiscal Period",
+          "type": "string"
+        },
+        "quarter": {
+          "maximum": 4,
+          "minimum": 1,
+          "title": "Quarter",
+          "type": "integer"
+        },
+        "cumulative_revenue": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cumulative Revenue"
+        },
+        "cumulative_operating_profit": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cumulative Operating Profit"
+        },
+        "full_year_op_forecast": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Full Year Op Forecast"
+        },
+        "revenue_yoy": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Revenue Yoy"
+        },
+        "opm": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Opm"
+        },
+        "opm_prev_year": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Opm Prev Year"
+        },
+        "announced": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Announced"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "as_of": {
+          "format": "date",
+          "title": "As Of",
+          "type": "string"
+        }
+      },
+      "required": [
+        "fiscal_period",
+        "quarter",
+        "source",
+        "as_of"
+      ],
+      "title": "QuarterResult",
+      "type": "object"
+    },
+    "Sourced": {
+      "additionalProperties": false,
+      "description": "Một con số kèm kỳ dữ liệu + nguồn + nhãn tin cậy.",
+      "properties": {
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "as_of": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "As Of"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "quality": {
+          "$ref": "#/$defs/Quality",
+          "default": "missing"
+        }
+      },
+      "title": "Sourced",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Gói dữ liệu cơ bản cho một mã — adapter chịu trách nhiệm điền.",
+  "properties": {
+    "code": {
+      "title": "Code",
+      "type": "string"
+    },
+    "name": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Name"
+    },
+    "market": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Market"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "annual": {
+      "items": {
+        "$ref": "#/$defs/AnnualResult"
+      },
+      "title": "Annual",
+      "type": "array"
+    },
+    "forecast": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Forecast"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "balance_sheet": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BalanceSheet"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "quarters": {
+      "items": {
+        "$ref": "#/$defs/QuarterResult"
+      },
+      "title": "Quarters",
+      "type": "array"
+    },
+    "shares_issued": {
+      "$ref": "#/$defs/Sourced"
+    },
+    "treasury_shares": {
+      "$ref": "#/$defs/Sourced"
+    },
+    "holders": {
+      "anyOf": [
+        {
+          "items": {
+            "$ref": "#/$defs/Holder"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Holders"
+    },
+    "holders_as_of": {
+      "anyOf": [
+        {
+          "format": "date",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Holders As Of"
+    },
+    "backlog": {
+      "anyOf": [
+        {
+          "items": {
+            "$ref": "#/$defs/BacklogPoint"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Backlog"
+    },
+    "text_evidence": {
+      "items": {
+        "$ref": "#/$defs/Evidence"
+      },
+      "title": "Text Evidence",
+      "type": "array"
+    }
+  },
+  "required": [
+    "code"
+  ],
+  "title": "Fundamentals",
+  "type": "object"
+}

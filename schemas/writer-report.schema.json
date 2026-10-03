@@ -1,0 +1,28 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "code": {
+      "title": "Code",
+      "type": "string"
+    },
+    "summary": {
+      "description": "mô tả dữ liệu, KHÔNG khuyến nghị mua/bán",
+      "title": "Summary",
+      "type": "string"
+    },
+    "cited_fields": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Cited Fields",
+      "type": "array"
+    }
+  },
+  "required": [
+    "code",
+    "summary",
+    "cited_fields"
+  ],
+  "title": "WriterReport",
+  "type": "object"
+}

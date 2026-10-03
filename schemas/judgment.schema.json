@@ -1,0 +1,121 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "code": {
+      "title": "Code",
+      "type": "string"
+    },
+    "question_id": {
+      "title": "Question Id",
+      "type": "string"
+    },
+    "question_version": {
+      "title": "Question Version",
+      "type": "integer"
+    },
+    "primitive": {
+      "enum": [
+        "noul",
+        "choice",
+        "score"
+      ],
+      "title": "Primitive",
+      "type": "string"
+    },
+    "raw_noul": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Raw Noul"
+    },
+    "raw_choice": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Raw Choice"
+    },
+    "raw_confidence": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Raw Confidence"
+    },
+    "probabilities": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Probabilities"
+    },
+    "value": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Value"
+    },
+    "evidence_hash": {
+      "title": "Evidence Hash",
+      "type": "string"
+    },
+    "evidence_label": {
+      "title": "Evidence Label",
+      "type": "string"
+    },
+    "model": {
+      "title": "Model",
+      "type": "string"
+    },
+    "judged_at": {
+      "format": "date-time",
+      "title": "Judged At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "code",
+    "question_id",
+    "question_version",
+    "primitive",
+    "evidence_hash",
+    "evidence_label",
+    "model",
+    "judged_at"
+  ],
+  "title": "Judgment",
+  "type": "object"
+}

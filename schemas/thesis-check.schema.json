@@ -1,0 +1,47 @@
+{
+  "$defs": {
+    "ThesisStatus": {
+      "enum": [
+        "INTACT",
+        "WEAKENING",
+        "BROKEN"
+      ],
+      "title": "ThesisStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "code": {
+      "title": "Code",
+      "type": "string"
+    },
+    "as_of": {
+      "format": "date",
+      "title": "As Of",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/ThesisStatus"
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reasons",
+      "type": "array"
+    },
+    "insufficient_data": {
+      "default": false,
+      "title": "Insufficient Data",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "code",
+    "as_of",
+    "status"
+  ],
+  "title": "ThesisCheck",
+  "type": "object"
+}

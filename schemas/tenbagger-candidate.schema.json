@@ -1,0 +1,936 @@
+{
+  "$defs": {
+    "CatalystEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/CatalystType"
+        },
+        "strength": {
+          "$ref": "#/$defs/CatalystStrength"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "disclosed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Disclosed At"
+        },
+        "effective_date": {
+          "format": "date",
+          "title": "Effective Date",
+          "type": "string"
+        },
+        "method": {
+          "enum": [
+            "rule",
+            "jev",
+            "code"
+          ],
+          "title": "Method",
+          "type": "string"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        },
+        "detail": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Detail"
+        }
+      },
+      "required": [
+        "code",
+        "type",
+        "strength",
+        "effective_date",
+        "method",
+        "source"
+      ],
+      "title": "CatalystEvent",
+      "type": "object"
+    },
+    "CatalystStrength": {
+      "enum": [
+        "NEGATIVE",
+        "LOW",
+        "MEDIUM",
+        "HIGH"
+      ],
+      "title": "CatalystStrength",
+      "type": "string"
+    },
+    "CatalystType": {
+      "enum": [
+        "upward_revision",
+        "downward_revision",
+        "dividend_increase",
+        "dividend_cut",
+        "buyback",
+        "mid_term_plan",
+        "market_change",
+        "stock_split",
+        "tender_offer",
+        "extraordinary_loss",
+        "upgrade_likely",
+        "prime_eligible",
+        "other"
+      ],
+      "title": "CatalystType",
+      "type": "string"
+    },
+    "Checklist": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/$defs/ChecklistItem"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "themes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Themes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "code",
+        "items"
+      ],
+      "title": "Checklist",
+      "type": "object"
+    },
+    "ChecklistItem": {
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "title": "Key",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "method": {
+          "enum": [
+            "code",
+            "jev",
+            "none"
+          ],
+          "title": "Method",
+          "type": "string"
+        },
+        "detail": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Detail"
+        },
+        "judgments": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Judgments",
+          "type": "array"
+        }
+      },
+      "required": [
+        "key",
+        "method"
+      ],
+      "title": "ChecklistItem",
+      "type": "object"
+    },
+    "EntrySignal": {
+      "enum": [
+        "BOTTOM",
+        "BREAKOUT",
+        "NONE"
+      ],
+      "title": "EntrySignal",
+      "type": "string"
+    },
+    "EntrySignalResult": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "as_of": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "As Of"
+        },
+        "signal": {
+          "$ref": "#/$defs/EntrySignal",
+          "default": "NONE"
+        },
+        "close": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Close"
+        },
+        "change_1d": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Change 1D"
+        },
+        "volume_ratio": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Volume Ratio"
+        },
+        "high_52w": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "High 52W"
+        },
+        "drawdown_52w": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Drawdown 52W"
+        },
+        "range_ratio": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Range Ratio"
+        },
+        "rsi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rsi"
+        },
+        "is_gainer": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Is Gainer"
+        },
+        "is_breakout": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Is Breakout"
+        },
+        "is_bottom": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Is Bottom"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "code"
+      ],
+      "title": "EntrySignalResult",
+      "type": "object"
+    },
+    "GateCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "threshold": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Threshold"
+        },
+        "passed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Passed"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "GateCheck",
+      "type": "object"
+    },
+    "GrowthGate": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/GateCheck"
+          },
+          "title": "Checks",
+          "type": "array"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "boolean"
+        },
+        "insufficient_data": {
+          "title": "Insufficient Data",
+          "type": "boolean"
+        },
+        "as_of": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "As Of"
+        }
+      },
+      "required": [
+        "code",
+        "checks",
+        "passed",
+        "insufficient_data"
+      ],
+      "title": "GrowthGate",
+      "type": "object"
+    },
+    "Market": {
+      "enum": [
+        "PRIME",
+        "STANDARD",
+        "GROWTH"
+      ],
+      "title": "Market",
+      "type": "string"
+    },
+    "Quality": {
+      "description": "Nhãn tin cậy (pillar §3).",
+      "enum": [
+        "live",
+        "proxy",
+        "stale",
+        "missing"
+      ],
+      "title": "Quality",
+      "type": "string"
+    },
+    "ScoreCard": {
+      "additionalProperties": false,
+      "properties": {
+        "universe": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/UniverseGate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "growth": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GrowthGate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "valuation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Valuation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "checklist": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Checklist"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "catalysts": {
+          "items": {
+            "$ref": "#/$defs/CatalystEvent"
+          },
+          "title": "Catalysts",
+          "type": "array"
+        }
+      },
+      "title": "ScoreCard",
+      "type": "object"
+    },
+    "Sourced": {
+      "additionalProperties": false,
+      "description": "Một con số kèm kỳ dữ liệu + nguồn + nhãn tin cậy.",
+      "properties": {
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "as_of": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "As Of"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "quality": {
+          "$ref": "#/$defs/Quality",
+          "default": "missing"
+        }
+      },
+      "title": "Sourced",
+      "type": "object"
+    },
+    "ThesisCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "as_of": {
+          "format": "date",
+          "title": "As Of",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/ThesisStatus"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "insufficient_data": {
+          "default": false,
+          "title": "Insufficient Data",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "code",
+        "as_of",
+        "status"
+      ],
+      "title": "ThesisCheck",
+      "type": "object"
+    },
+    "ThesisStatus": {
+      "enum": [
+        "INTACT",
+        "WEAKENING",
+        "BROKEN"
+      ],
+      "title": "ThesisStatus",
+      "type": "string"
+    },
+    "Tier": {
+      "enum": [
+        "A",
+        "B",
+        "C",
+        "NONE"
+      ],
+      "title": "Tier",
+      "type": "string"
+    },
+    "UniverseGate": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/GateCheck"
+          },
+          "title": "Checks",
+          "type": "array"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "boolean"
+        },
+        "insufficient_data": {
+          "title": "Insufficient Data",
+          "type": "boolean"
+        },
+        "as_of": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "As Of"
+        },
+        "market": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Market"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "market_cap": {
+          "$ref": "#/$defs/Sourced"
+        },
+        "adtv": {
+          "$ref": "#/$defs/Sourced"
+        }
+      },
+      "required": [
+        "code",
+        "checks",
+        "passed",
+        "insufficient_data"
+      ],
+      "title": "UniverseGate",
+      "type": "object"
+    },
+    "Valuation": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "per_forecast": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Per Forecast"
+        },
+        "eps_growth": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Eps Growth"
+        },
+        "eps_growth_capped": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Eps Growth Capped"
+        },
+        "peg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Peg"
+        },
+        "market_cap": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Market Cap"
+        },
+        "net_cash": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Net Cash"
+        },
+        "net_cash_ratio": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Net Cash Ratio"
+        },
+        "as_of": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "As Of"
+        },
+        "sources": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "code"
+      ],
+      "title": "Valuation",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "code": {
+      "title": "Code",
+      "type": "string"
+    },
+    "name": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Name"
+    },
+    "market": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Market"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "tier": {
+      "$ref": "#/$defs/Tier"
+    },
+    "labels": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Labels",
+      "type": "array"
+    },
+    "tier_reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Tier Reasons",
+      "type": "array"
+    },
+    "scorecard": {
+      "$ref": "#/$defs/ScoreCard"
+    },
+    "entry_signal": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/EntrySignalResult"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "thesis": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ThesisCheck"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "code",
+    "tier",
+    "scorecard"
+  ],
+  "title": "TenBaggerCandidate",
+  "type": "object"
+}

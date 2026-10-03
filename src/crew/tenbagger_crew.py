@@ -6,8 +6,8 @@ Mọi con số đã do code tính (src/pipeline.py). LLM không tính, không tr
   · Writer : mô tả dữ liệu thành đoạn văn ngắn → WriterReport. Cấm khuyến nghị.
 Đầu ra ép kiểu bằng output_pydantic; guardrail chặn câu khuyến nghị (pillar §7).
 """
-from __future__ import annotations
-
+# KHÔNG dùng `from __future__ import annotations` ở file này: crewai kiểm chữ ký
+# guardrail bằng inspect.signature và từ chối annotation dạng chuỗi.
 import re
 from typing import Any
 

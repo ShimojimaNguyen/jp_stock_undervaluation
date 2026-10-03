@@ -28,11 +28,19 @@ L0 Nguồn ──► L1 Chuẩn hoá ──► L2 Tính (code) ──► L4 Tổ
 | **L5 Export** | `data/tenbagger-candidates.json` (+ `.sample.json` khi `--limit`) | `src/pipeline.py` | chờ nguồn cơ bản |
 | **L6 Crew** | Arbiter (mâu thuẫn) + Writer (mô tả) — `EscalatingAgent` | `src/crew/*` | xong; chưa nối vào pipeline |
 
+**Chạy ở đâu**: GitHub Actions (`.github/workflows/tenbagger-daily.yml`), vì môi
+trường dựng code (Claude Code cloud) chặn mọi host dữ liệu. Lần đầu: Actions →
+tenbagger-daily → Run workflow với `shard=all` (~3,4 giờ). Sau đó tự chạy 16:45 JST
+thứ Hai–Sáu, mỗi ngày làm mới 1/5 universe.
+
 Thứ tự chạy (batch, không có request path):
 
 ```bash
-uv run python -m src.jev.run --fundamentals-source <src>     # L3: hỏi Jev phần chưa có trong cache
-uv run python -m src.pipeline --fundamentals-source <src> --fetch-ohlcv   # L2+L4+L5
+uv run python -m src.data.jpx_universe --out data/universe.json               # L0 universe
+uv run python -m src.data.kabutan_finance --universe data/universe.json --shard 0/5   # L0 株探
+uv run python -m src.catalyst.tdnet --days 5                                      # L0 TDnet
+uv run python -m src.jev.run --fundamentals-source kabutan                        # L3 (mã qua bước 2)
+uv run python -m src.pipeline --fundamentals-source kabutan --universe data/universe.json --fetch-ohlcv
 ```
 
 ---
@@ -62,9 +70,10 @@ cho A). Hiện `tiers.b_requires_universe: true`.
 | giá ngày, PER dự phóng | `kiyohara/data/snapshots-kabutan-latest.json` (đặt `KIYOHARA_SNAPSHOT`) | **chỉ phủ TOPIX Core30/Large70/Mid400 (~492 mã)** — phần lớn mã 50–1000億円 KHÔNG có trong đó |
 | OHLCV ngày | Yahoo chart v8 `query1.finance.yahoo.com` | code xong; chưa chạy thật (proxy môi trường dựng code chặn host này) |
 | công bố | TDnet `www.release.tdnet.info/inbs/I_list_NNN_YYYYMMDD.html` | parser theo cấu trúc đã biết, **chưa đối chiếu trang thật** (proxy chặn); `fetch_day` tự đọc robots.txt, từ chối nếu cấm/không đọc được |
-| 4 năm doanh thu/OP/EPS + dự báo | 株探 `/stock/finance` (parser đã có ở kiyohara) | **chưa quyết** |
-| BS (流動資産/投資有価証券/負債合計/自己資本), CFO, 発行済/自己株, 大株主, 役員持株 | EDINET API v2 (cần `EDINET_API_KEY`) | **chưa quyết** |
-| danh sách mã + thị trường toàn TSE | JPX `data_j.xls` (kiyohara `build_universe.py` đọc được) | **chưa nối** |
+| 4 năm doanh thu/OP/EPS + dự báo, sàn, giá, 時価総額 (proxy bước 1) | 株探 `/stock/finance` — `src/data/kabutan_finance.py` | **xong**, kiểm trên 4 trang thật |
+| 自己資本/総資産, 営業CF | cùng trang 株探 (bảng 財務 / キャッシュフロー) | parser theo nhãn cột, **chưa có HTML thật** — kiểm ở lần chạy đầu |
+| 流動資産/投資有価証券/負債合計, 発行済/自己株, 大株主, 役員持株 | EDINET API v2 (cần `EDINET_API_KEY`) | **chưa nối** → net cash 清原 null → chưa ai lên tầng A |
+| danh sách mã + thị trường toàn TSE | JPX `data_j` — `src/data/jpx_universe.py` | **xong**; cột 市場・商品区分 chưa kiểm file thật |
 | số cổ đông, 流通株式 (tiêu chí Prime) | chưa có nguồn | `prime_eligibility` trả null |
 
 Không có nguồn = `null` xuyên suốt, không bao giờ giá trị mặc định.

@@ -21,7 +21,6 @@ from __future__ import annotations
 import json
 import re
 import time
-import urllib.robotparser
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from html.parser import HTMLParser
@@ -29,6 +28,7 @@ from pathlib import Path
 from urllib.parse import urljoin
 
 from src.contracts import CatalystEvent, CatalystStrength, CatalystType, QuarterResult
+from src.data.http import robots_policy
 from src.params import CatalystParams, PrimeParams
 
 SOURCE = "TDnet 適時開示情報閲覧サービス"
@@ -271,30 +271,16 @@ def prime_eligibility(pp: PrimeParams, *, shareholders: int | None, tradable_uni
 
 
 # --------------------------------------------------------------- fetch (mạng)
-def robots_allows(base_url: str, user_agent: str, session=None) -> bool:
-    """Đọc robots.txt thật. 404 = không hạn chế; lỗi khác = TỪ CHỐI (không đoán)."""
-    import requests
-
-    s = session or requests.Session()
-    url = urljoin(base_url, "/robots.txt")
-    r = s.get(url, headers={"User-Agent": user_agent}, timeout=20)
-    if r.status_code == 404:
-        return True
-    if r.status_code != 200:
-        return False
-    rp = urllib.robotparser.RobotFileParser()
-    rp.parse(r.text.splitlines())
-    return rp.can_fetch(user_agent, base_url)
-
-
 def fetch_day(day: date, p: CatalystParams, max_pages: int = 30, session=None
               ) -> list[Disclosure]:
     """Tải mọi trang danh sách của một ngày. Giãn request_delay_s giữa các trang."""
     import requests
 
     s = session or requests.Session()
-    if not robots_allows(p.tdnet_base_url, p.tdnet_user_agent, s):
-        raise PermissionError("robots.txt của TDnet không cho phép (hoặc không đọc được) — dừng")
+    ok, _, why = robots_policy(urljoin(p.tdnet_base_url, f"I_list_001_{day:%Y%m%d}.html"),
+                               p.tdnet_user_agent, s)
+    if not ok:
+        raise PermissionError(f"TDnet robots: {why} — dừng")
     out: list[Disclosure] = []
     for page in range(1, max_pages + 1):
         url = urljoin(p.tdnet_base_url, f"I_list_{page:03d}_{day:%Y%m%d}.html")

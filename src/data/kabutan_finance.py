@@ -250,9 +250,10 @@ class KabutanFinanceFetcher:
 
         self.s = session or requests.Session()
         self.ua = user_agent
-        ok, delay = robots_policy(URL.format(code="7203"), user_agent, self.s)
+        ok, delay, why = robots_policy(URL.format(code="7203"), user_agent, self.s)
+        print(f"kabutan robots: {why}")
         if not ok:
-            raise PermissionError("robots.txt của kabutan.jp không cho phép (hoặc không đọc được)")
+            raise PermissionError(f"kabutan robots: {why}")
         self.throttle = Throttle(max(min_delay_s, (delay or 0) + 0.2))
         self.base = Path(base_dir)
 

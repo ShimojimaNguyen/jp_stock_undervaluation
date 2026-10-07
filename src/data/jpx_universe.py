@@ -63,8 +63,9 @@ def fetch(user_agent: str, session=None) -> tuple[list[dict], date | None, int]:
     from src.data.http import robots_policy
 
     s = session or requests.Session()
-    if not robots_policy(INDEX, user_agent, s)[0]:
-        raise PermissionError("robots.txt của jpx.co.jp không cho phép")
+    ok, _, why = robots_policy(INDEX, user_agent, s)
+    if not ok:
+        raise PermissionError(f"jpx robots: {why}")
     page = s.get(INDEX, headers={"User-Agent": user_agent}, timeout=60)
     page.raise_for_status()
     m = re.search(r'href="([^"]*data_j\.xlsx?)"', page.text)

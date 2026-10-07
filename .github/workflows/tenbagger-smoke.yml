@@ -37,6 +37,19 @@ jobs:
           uv run python -m src.data.jpx_universe --out data/universe.json
           uv run python -c "import json;d=json.load(open('data/universe.json'));print(d['count'],d['as_of'],d['skipped']);print(d['codes'][:3])"
 
+      - name: Chẩn đoán robots.txt từng nguồn
+        if: always()
+        run: |
+          UA="jp-stock-undervaluation/0.1 (research)"
+          for u in https://kabutan.jp/robots.txt https://www.release.tdnet.info/robots.txt \
+                   https://kabutan.jp/stock/finance?code=7203 \
+                   "https://www.release.tdnet.info/inbs/I_list_001_$(date -u +%Y%m%d).html" \
+                   "https://query1.finance.yahoo.com/v8/finance/chart/7203.T?range=5d&interval=1d"; do
+            echo "== $u"
+            curl -sS -A "$UA" -o /tmp/body -w "HTTP %{http_code} %{content_type} %{size_download}B\n" "$u" || true
+            case "$u" in *robots.txt) head -c 1500 /tmp/body; echo;; esac
+          done
+
       - name: 株探 (một lát)
         continue-on-error: true
         run: |

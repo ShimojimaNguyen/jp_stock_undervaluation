@@ -37,6 +37,7 @@ from src.contracts import (
     Evidence,
     Fundamentals,
     Judgment,
+    Market,
     PriceSnapshot,
     Quality,
     ScoreCard,
@@ -245,6 +246,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--as-of", default=None)
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--out", default=str(EXPORT_PATH))
+    ap.add_argument("--only-fetched", action="store_true",
+                    help="chỉ xét mã đã có file cơ bản (chạy thử trên một phần universe)")
     a = ap.parse_args(argv)
 
     p = default_params()
@@ -260,6 +263,9 @@ def main(argv: list[str] | None = None) -> int:
         markets = {u["code"]: u["market"] for u in uni["codes"]}
     else:
         codes = fs.codes()
+    if a.only_fetched:
+        have = set(fs.codes())
+        codes = [c for c in codes if c in have]
     if a.limit:
         codes = codes[:a.limit]
     cov = fundamentals_coverage(codes, fs)
@@ -269,7 +275,8 @@ def main(argv: list[str] | None = None) -> int:
     for code in codes:
         f = fs.get(code)
         if f is not None and f.market is None and code in markets:
-            f = f.model_copy(update={"market": markets[code]})
+            # model_copy KHÔNG validate → phải tự đổi chuỗi sang enum
+            f = f.model_copy(update={"market": Market(markets[code])})
         js = judgments_for(code, f.text_evidence if f else [], reg, cache,
                            checklist_question_ids(p))
         snap = prices.snapshot(code)

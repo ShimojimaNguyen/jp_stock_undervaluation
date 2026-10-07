@@ -179,3 +179,32 @@ def test_pipeline_writes_when_covered(tmp_path):
     exp = json.loads(out.read_text())
     assert exp["universe_count"] == 3
     assert any("phủ 100.0%" in n for n in exp["notes"])
+
+
+def test_pipeline_market_from_universe_is_enum(tmp_path):
+    """Bug thật: model_copy không validate → market là chuỗi → universe_gate gọi .value và chết."""
+    from src.data.adapters import JsonFundamentalsSource
+    from tests.conftest import make_fundamentals
+
+    fs = JsonFundamentalsSource("kabutan", base=tmp_path / "fundamentals")
+    fs.write(make_fundamentals(code="9000", market=None))
+    uni = tmp_path / "universe.json"
+    uni.write_text(json.dumps({"codes": [{"code": "9000", "name": "x", "market": "GROWTH"}]}))
+    rc, out = _run(tmp_path, uni)
+    assert rc == 0
+    c = json.loads(out.read_text())["candidates"][0]
+    assert c["scorecard"]["universe"]["market"] == "GROWTH"
+
+
+def test_diagnostics_report(tmp_path):
+    from src.data.adapters import JsonFundamentalsSource
+    from src.diagnostics import report
+    from tests.conftest import make_fundamentals
+
+    fs = JsonFundamentalsSource("kabutan", base=tmp_path / "fundamentals")
+    fs.write(make_fundamentals(code="9000"))
+    fs.write(make_fundamentals(code="9001", forecast=None))
+    r = report(tmp_path, "kabutan")
+    assert r["n"] == 2 and r["counts"]["growth_pass"] == 1
+    assert r["none_reasons"]["op_forecast_growth:none"] == 1
+    assert r["coverage"]["price"] == 0.0

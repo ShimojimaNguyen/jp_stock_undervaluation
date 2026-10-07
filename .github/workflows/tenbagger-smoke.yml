@@ -1,0 +1,82 @@
+name: tenbagger-smoke
+
+# Chạy THỬ flow 10-bagger trên một lát universe (mặc định 1/20 ≈ 190 mã, ~10 phút
+# ở Crawl-delay 3s) để kiểm parser/nguồn trên dữ liệu thật trước khi chạy cả TSE.
+# Chạy trên push vào nhánh claude/** (không cần merge) và chạy tay.
+# Chỉ upload KẾT QUẢ ĐÃ TÍNH + chẩn đoán — không upload bản sao dữ liệu nguồn.
+
+on:
+  push:
+    branches: ["claude/**"]
+    paths: ["src/**", "config/**", "questions/**", ".github/workflows/tenbagger-smoke.yml"]
+  workflow_dispatch:
+    inputs:
+      shard:
+        description: "lát universe i/n"
+        default: "0/20"
+
+concurrency:
+  group: tenbagger-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      HAS_JEV: ${{ secrets.TYPESAFE_API_KEY != '' }}
+      OUT: smoke-out
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+      - run: mkdir -p "$OUT"
+
+      - name: Universe JPX
+        run: |
+          uv run python -m src.data.jpx_universe --out data/universe.json
+          uv run python -c "import json;d=json.load(open('data/universe.json'));print(d['count'],d['as_of'],d['skipped']);print(d['codes'][:3])"
+
+      - name: 株探 (một lát)
+        continue-on-error: true
+        run: |
+          uv run python -m src.data.kabutan_finance --universe data/universe.json \
+            --shard "${{ github.event.inputs.shard || '0/20' }}"
+
+      - name: Chẩn đoán độ phủ từng trường
+        if: always()
+        run: uv run python -m src.diagnostics --data-dir data --source kabutan | tee "$OUT/diagnostics.json"
+
+      - name: TDnet 3 ngày
+        continue-on-error: true
+        run: |
+          uv run python -m src.catalyst.tdnet --days 3
+          ls data/tdnet && head -n 3 data/tdnet/*.jsonl | head -20
+
+      - name: Jev batch
+        if: env.HAS_JEV == 'true'
+        continue-on-error: true
+        env:
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+        run: uv run python -m src.jev.run --fundamentals-source kabutan
+
+      - name: Pipeline trên lát đã tải
+        if: always()
+        run: |
+          uv run python -m src.pipeline --fundamentals-source kabutan \
+            --universe data/universe.json --only-fetched --min-coverage 0 \
+            --fetch-ohlcv --out "$OUT/tenbagger-candidates.json"
+          uv run python -c "
+          import json;d=json.load(open('$OUT/tenbagger-candidates.json'))
+          print('counts',d['counts']);print('notes',d['notes']);print('failures',d['failures'][:20])
+          for c in d['candidates'][:30]:
+              v=c['scorecard']['valuation'];s=c.get('entry_signal') or {}
+              print(c['tier'],c['code'],c['name'],'peg',v['peg'],'ncr',v['net_cash_ratio'],'sig',s.get('signal'),c['tier_reasons'])
+          "
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-out
+          path: smoke-out
+          retention-days: 7

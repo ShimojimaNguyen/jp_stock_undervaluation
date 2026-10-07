@@ -94,7 +94,7 @@ def yahoo_jp_probe(code: str) -> dict:
         keys = sorted(set(re.findall(r'"([a-zA-Z]*(?:[Ff]orecast|[Ss]ales|[Oo]perating)[a-zA-Z]*)"', t)))
         info["json_keys"] = keys[:60]
         i = t.find("営業利益")
-        for key in ("performanceForecastList", '"forecast":', "forecastRevisionList"):
+        for key in ('"performance":', "netSalesYoy", "operatingCashFlow"):
             k = t.find(key)
             if k >= 0:
                 info[f"json@{key}"] = t[k:k + 1800]

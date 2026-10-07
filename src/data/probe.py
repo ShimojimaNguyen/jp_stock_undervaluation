@@ -80,7 +80,7 @@ def yahoo_jp_probe(code: str) -> dict:
     import requests
 
     out = {}
-    for suffix in ("", "/performance"):
+    for suffix in ("/performance",):
         url = f"https://finance.yahoo.co.jp/quote/{code}.T{suffix}"
         try:
             r = requests.get(url, headers={"User-Agent": UA}, timeout=30)
@@ -94,6 +94,10 @@ def yahoo_jp_probe(code: str) -> dict:
         keys = sorted(set(re.findall(r'"([a-zA-Z]*(?:[Ff]orecast|[Ss]ales|[Oo]perating)[a-zA-Z]*)"', t)))
         info["json_keys"] = keys[:60]
         i = t.find("営業利益")
+        for key in ("performanceForecastList", '"forecast":', "forecastRevisionList"):
+            k = t.find(key)
+            if k >= 0:
+                info[f"json@{key}"] = t[k:k + 1800]
         info["around_op"] = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", t[max(0, i - 300):i + 500]))[:600] if i >= 0 else None
         out[suffix or "/"] = info
     return out

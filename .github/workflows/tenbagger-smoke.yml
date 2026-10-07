@@ -100,6 +100,10 @@ jobs:
         if: always()
         run: uv run python -m src.data.probe --codes 7203 | tail -n 1
 
+      - name: Thăm dò 会社予想 trên Yahoo JP (2 request)
+        if: always()
+        run: uv run python -m src.data.probe --yahoo-jp 1870
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:

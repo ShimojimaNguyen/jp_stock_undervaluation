@@ -73,10 +73,40 @@ def yf_probe(code: str) -> dict:
     return out
 
 
+def yahoo_jp_probe(code: str) -> dict:
+    """Tìm khối 会社予想 trên trang Yahoo JP — CHỈ 2 request (nguồn chặn sau ~85 mã)."""
+    import re
+
+    import requests
+
+    out = {}
+    for suffix in ("", "/performance"):
+        url = f"https://finance.yahoo.co.jp/quote/{code}.T{suffix}"
+        try:
+            r = requests.get(url, headers={"User-Agent": UA}, timeout=30)
+        except Exception as e:  # noqa: BLE001
+            out[suffix or "/"] = f"{type(e).__name__}"
+            continue
+        t = r.text.replace('\\"', '"')
+        info = {"status": r.status_code, "bytes": len(r.content),
+                "counts": {k: t.count(k) for k in ("会社予想", "予想", "営業利益", "売上高",
+                                                    "forecast", "Forecast", "isLock")}}
+        keys = sorted(set(re.findall(r'"([a-zA-Z]*(?:[Ff]orecast|[Ss]ales|[Oo]perating)[a-zA-Z]*)"', t)))
+        info["json_keys"] = keys[:60]
+        i = t.find("営業利益")
+        info["around_op"] = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", t[max(0, i - 300):i + 500]))[:600] if i >= 0 else None
+        out[suffix or "/"] = info
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--codes", nargs="+", default=["7203", "6861", "3436"])
+    ap.add_argument("--yahoo-jp", default=None, help="thăm dò trang Yahoo JP của MỘT mã")
     a = ap.parse_args(argv)
+    if a.yahoo_jp:
+        print(json.dumps({"yahoo_jp": yahoo_jp_probe(a.yahoo_jp)}, ensure_ascii=False))
+        return 0
     for c in a.codes:
         print(json.dumps({c: yf_probe(c)}, ensure_ascii=False))
     print(json.dumps({"http": http_status()}, ensure_ascii=False))   # in cuối = nằm ở đuôi log

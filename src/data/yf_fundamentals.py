@@ -78,6 +78,9 @@ def build_fundamentals(code: str, income, balance, cashflow, market: Market | No
             annual.append(AnnualResult(
                 fiscal_period=_period(c), months=months, revenue=rev,
                 operating_profit=_v(income, "Operating Income", c), eps=eps, cfo=cfo,
+                net_income=_v(income, "Net Income Common Stockholders", c)
+                if _v(income, "Net Income Common Stockholders", c) is not None
+                else _v(income, "Net Income", c),
                 source=SOURCE, as_of=c.date()))
             prev = c
 

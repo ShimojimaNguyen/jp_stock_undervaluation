@@ -72,7 +72,18 @@ jobs:
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
         run: uv run python -m src.jev.run --fundamentals-source kabutan
 
-      - name: Pipeline trên lát đã tải
+      - name: Pipeline lần 1 (tìm mã chờ 会社予想)
+        if: always()
+        run: |
+          uv run python -m src.pipeline --fundamentals-source yfinance \
+            --universe data/universe.json --only-fetched --min-coverage 0 \
+            --out "$OUT/pass1.json"
+
+      - name: 会社予想 Yahoo JP cho mã chờ (trần 60, giãn 3s)
+        if: always()
+        run: uv run python -m src.data.yahoojp_forecast --from "$OUT/pass1.json" --max 60
+
+      - name: Pipeline lần 2 (đủ 8 bước)
         if: always()
         run: |
           uv run python -m src.pipeline --fundamentals-source yfinance \
@@ -87,22 +98,18 @@ jobs:
               sc = c["scorecard"]; v = sc["valuation"]; u = sc["universe"]
               chk = {x["name"]: x["value"] for x in sc["growth"]["checks"]}
               s = c.get("entry_signal") or {}
+              cats = ",".join(e["type"] for e in sc["catalysts"])
               return (f"{c['tier']:4} {c['code']} {c['name']} mcap={u['market_cap']['value']} "
                       f"adtv={u['adtv']['value']} uni={u['passed']} cagr={chk['revenue_cagr']} "
-                      f"eq={chk['equity_ratio']} ncr={v['net_cash_ratio']} sig={s.get('signal')}")
+                      f"opfc={chk['op_forecast_growth']} eq={chk['equity_ratio']} "
+                      f"peg={v['peg']} ncr={v['net_cash_ratio']} cat=[{cats}] "
+                      f"sig={s.get('signal')} thesis={(c.get('thesis') or {}).get('status')} "
+                      f"why={c['tier_reasons']}")
           for c in d["candidates"]:
               print("CAND", line(c))
           for c in d["awaiting_forecast"]:
               print("WAIT", line(c))
           PY
-
-      - name: Trạng thái HTTP các nguồn khác
-        if: always()
-        run: uv run python -m src.data.probe --codes 7203 | tail -n 1
-
-      - name: Thăm dò 会社予想 trên Yahoo JP (2 request)
-        if: always()
-        run: uv run python -m src.data.probe --yahoo-jp 1870
 
       - uses: actions/upload-artifact@v4
         if: always()

@@ -265,6 +265,7 @@ def fundamentals_coverage(codes: list[str], fs) -> float:
 def main(argv: list[str] | None = None) -> int:
     from src.data.adapters import JsonFundamentalsSource, KiyoharaSnapshotSource
     from src.data.kabutan_finance import KabutanPriceSource
+    from src.data.yahoojp_forecast import YahooJPForecastStore, revision_events, to_forecast
     from src.data.yf_fundamentals import YFPriceSource
     from src.jev.registry import default_registry
     from src.params import default_params
@@ -313,23 +314,40 @@ def main(argv: list[str] | None = None) -> int:
     cov = fundamentals_coverage(codes, fs)
     cats, pending = load_catalysts(Path(a.tdnet_dir), as_of, p, reg, cache)
 
+    fc_store = YahooJPForecastStore(a.data_dir)
+    hol = holidays_of(p.catalyst)
+
+    def eff(dt):
+        return effective_date(dt, p.catalyst.cutoff_hhmm, hol)
+
     cands, failures = [], []
     for code in codes:
         f = fs.get(code)
+        extra_cats: list[CatalystEvent] = []
+        stored = fc_store.get(code)
+        if f is not None and stored is not None:
+            fetched = date.fromisoformat(stored["fetched"])
+            if f.forecast is None and stored.get("forecast"):
+                f = f.model_copy(update={"forecast": to_forecast(stored["forecast"], f, fetched)})
+            upd = (stored.get("forecast") or {}).get("updatedDate")
+            extra_cats = [e for e in revision_events(
+                code, stored.get("revisions") or [], date.fromisoformat(upd) if upd else None,
+                eff, p.catalyst.strength) if e.effective_date <= as_of]
         if f is not None and f.market is None and code in markets:
             # model_copy KHÔNG validate → phải tự đổi chuỗi sang enum
             f = f.model_copy(update={"market": Market(markets[code])})
         js = judgments_for(code, f.text_evidence if f else [], reg, cache,
                            checklist_question_ids(p))
         snap = prices.snapshot(code)
-        c = evaluate_code(code, f, snap, None, js, cats.get(code, []), as_of, p)
+        code_cats = cats.get(code, []) + extra_cats
+        c = evaluate_code(code, f, snap, None, js, code_cats, as_of, p)
         if a.fetch_ohlcv and ((c.scorecard.growth and c.scorecard.growth.passed)
                               or awaiting_forecast(c)):
             try:
                 ohlcv = completed_sessions(fetch_chart(code, p.signals.user_agent), as_of,
                                            market_closed=_session_closed(as_of))
                 time.sleep(p.signals.request_delay_s)
-                c = evaluate_code(code, f, snap, ohlcv, js, cats.get(code, []), as_of, p)
+                c = evaluate_code(code, f, snap, ohlcv, js, code_cats, as_of, p)
             except Exception as e:  # noqa: BLE001 — đếm, không lấp
                 failures.append(f"{code}: ohlcv {type(e).__name__}")
         cands.append(c)

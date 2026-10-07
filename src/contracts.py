@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 from datetime import date, datetime
 from enum import Enum
 from pathlib import Path
@@ -108,6 +109,8 @@ class Sourced(_Model):
             if self.quality is not Quality.MISSING:
                 raise ValueError("value=None thì quality phải là 'missing'")
         else:
+            if not math.isfinite(self.value):
+                raise ValueError("NaN/inf không phải số liệu — dùng None (pillar §1)")
             if self.as_of is None or not self.source:
                 raise ValueError("số có giá trị phải kèm as_of + source (pillar §2)")
             if self.quality is Quality.MISSING:
@@ -121,7 +124,7 @@ class Sourced(_Model):
     @classmethod
     def of(cls, value: float | None, as_of: date | None, source: str | None,
            quality: Quality = Quality.LIVE) -> Sourced:
-        if value is None:
+        if value is None or (isinstance(value, float) and not math.isfinite(value)):
             return cls()
         return cls(value=value, as_of=as_of, source=source, quality=quality)
 

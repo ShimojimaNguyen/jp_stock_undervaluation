@@ -199,10 +199,15 @@ def _session_closed(as_of: date) -> bool:
 
 
 class PriceChain:
-    """Giá: snapshot kiyohara trước (ưu tiên, không fetch trùng), rồi trang 株探 đã lưu."""
+    """Giá: snapshot kiyohara trước (ưu tiên, không fetch trùng), rồi trang 株探 đã lưu.
 
-    def __init__(self, sources: list):
+    Giá có ngày CŨ HƠN phiên đã đóng gần nhất → nhãn STALE (giữ số, đổi nhãn):
+    株探 chỉ làm mới mỗi mã 1 lần/tuần, nên phần lớn ngày giá là của vài phiên trước.
+    """
+
+    def __init__(self, sources: list, last_session: date | None = None):
         self.sources = sources
+        self.last_session = last_session
         self.name = " → ".join(x.name for x in sources) or "không có"
 
     def snapshot(self, code: str) -> PriceSnapshot | None:
@@ -212,8 +217,23 @@ class PriceChain:
             except FileNotFoundError:
                 continue
             if s is not None and s.close.value is not None:
+                if (self.last_session and s.close.as_of
+                        and s.close.as_of < self.last_session):
+                    s = s.model_copy(update={"close": s.close.model_copy(
+                        update={"quality": Quality.STALE})})
                 return s
         return None
+
+
+def last_completed_session(as_of: date, closed: bool, holidays: set[date]) -> date:
+    from src.catalyst.tdnet import is_trading_day
+
+    d = as_of
+    if not (closed and is_trading_day(d, holidays)):
+        d -= timedelta(days=1)
+    while not is_trading_day(d, holidays):
+        d -= timedelta(days=1)
+    return d
 
 
 def fundamentals_coverage(codes: list[str], fs) -> float:
@@ -255,7 +275,9 @@ def main(argv: list[str] | None = None) -> int:
     cache = JudgmentCache(ROOT / p.jev.cache_path)
     as_of = date.fromisoformat(a.as_of) if a.as_of else date.today()
     fs = JsonFundamentalsSource(a.fundamentals_source, base=Path(a.data_dir) / "fundamentals")
-    prices = PriceChain([KiyoharaSnapshotSource(a.snapshot), KabutanPriceSource(a.data_dir)])
+    prices = PriceChain([KiyoharaSnapshotSource(a.snapshot), KabutanPriceSource(a.data_dir)],
+                        last_completed_session(as_of, _session_closed(as_of),
+                                               holidays_of(p.catalyst)))
     markets: dict[str, str] = {}
     if a.universe:
         uni = json.loads(Path(a.universe).read_text(encoding="utf-8"))

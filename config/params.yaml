@@ -45,8 +45,18 @@ catalyst:
   tdnet_user_agent: "jp-stock-undervaluation/0.1 (research; metadata only)"
   request_delay_s: 3.2                      # giãn ≥3s/request (chưa đọc được robots TDnet — xem docs)
   cutoff_hhmm: "15:00"                      # công bố từ 15:00 trở đi → hiệu lực phiên kế tiếp
-  # Ngày nghỉ sàn ngoài thứ 7/CN. Phải cập nhật hằng năm từ lịch JPX.
-  market_holidays: []
+  # Ngày nghỉ sàn ngoài thứ 7/CN. Phải cập nhật hằng năm từ lịch JPX
+  # (jpx.co.jp/corporate/about-jpx/calendar). 2026–2027 theo lịch ngày lễ Nhật;
+  # 春分/秋分 2027 lấy theo công bố của 国立天文台 — đối chiếu lại lịch JPX.
+  market_holidays: [
+    "2026-01-01", "2026-01-02", "2026-01-12", "2026-02-11", "2026-02-23", "2026-03-20",
+    "2026-04-29", "2026-05-04", "2026-05-05", "2026-05-06", "2026-07-20", "2026-08-11",
+    "2026-09-21", "2026-09-22", "2026-09-23", "2026-10-12", "2026-11-03", "2026-11-23",
+    "2026-12-31",
+    "2027-01-01", "2027-01-11", "2027-02-11", "2027-02-23", "2027-03-22", "2027-04-29",
+    "2027-05-03", "2027-05-04", "2027-05-05", "2027-07-19", "2027-08-11", "2027-09-20",
+    "2027-09-23", "2027-10-11", "2027-11-03", "2027-11-23", "2027-12-31",
+  ]
   # Tiến độ OP luỹ kế/dự báo năm so với trung bình lịch sử cùng quý
   upgrade_progress_margin: 0.05             # vượt trung bình lịch sử ≥5 điểm % → "có khả năng nâng dự báo"
   upgrade_min_history_years: 3

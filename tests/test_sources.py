@@ -208,3 +208,19 @@ def test_diagnostics_report(tmp_path):
     assert r["n"] == 2 and r["counts"]["growth_pass"] == 1
     assert r["none_reasons"]["op_forecast_growth:none"] == 1
     assert r["coverage"]["price"] == 0.0
+
+
+def test_price_chain_marks_old_price_stale(tmp_path):
+    from src.pipeline import last_completed_session
+
+    d = tmp_path / "prices" / "kabutan"
+    d.mkdir(parents=True)
+    (d / "9999.json").write_text(PriceSnapshot(
+        code="9999", close=Sourced.of(2000.0, date(2026, 9, 29), "kabutan")).model_dump_json())
+    last = last_completed_session(date(2026, 10, 2), True, set())
+    assert last == date(2026, 10, 2)
+    snap = PriceChain([KabutanPriceSource(tmp_path)], last).snapshot("9999")
+    assert snap.close.value == 2000.0 and snap.close.quality is Quality.STALE
+    # phiên chưa đóng / cuối tuần → lùi về phiên đã đóng gần nhất
+    assert last_completed_session(date(2026, 10, 5), False, set()) == date(2026, 10, 2)
+    assert last_completed_session(date(2026, 10, 4), True, set()) == date(2026, 10, 2)

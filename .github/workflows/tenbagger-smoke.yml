@@ -1,5 +1,8 @@
 name: tenbagger-smoke
 
+# 2026-10-07: 株探 bị AWS WAF chặn từ IP Actions (HTTP 405 Human Verification) và
+# TDnet robots.txt `Disallow: /` → cả hai KHÔNG chạy ở đây. Không né bot protection.
+#
 # Chạy THỬ flow 10-bagger trên một lát universe (mặc định 1/20 ≈ 190 mã, ~10 phút
 # ở Crawl-delay 3s) để kiểm parser/nguồn trên dữ liệu thật trước khi chạy cả TSE.
 # Chạy trên push vào nhánh claude/** (không cần merge) và chạy tay.
@@ -50,21 +53,13 @@ jobs:
             case "$u" in *robots.txt) head -c 1500 /tmp/body; echo;; esac
           done
 
-      - name: 株探 (một lát)
-        continue-on-error: true
-        run: |
-          uv run python -m src.data.kabutan_finance --universe data/universe.json \
-            --shard "${{ github.event.inputs.shard || '0/20' }}"
+      - name: Thăm dò nguồn thay thế (yfinance, Yahoo JP, EDINET, J-Quants)
+        if: always()
+        run: uv run python -m src.data.probe --codes 7203 6861 3436 4385 6526 2160 | tee "$OUT/probe.json"
 
       - name: Chẩn đoán độ phủ từng trường
         if: always()
         run: uv run python -m src.diagnostics --data-dir data --source kabutan | tee "$OUT/diagnostics.json"
-
-      - name: TDnet 3 ngày
-        continue-on-error: true
-        run: |
-          uv run python -m src.catalyst.tdnet --days 3
-          ls data/tdnet && head -n 3 data/tdnet/*.jsonl | head -20
 
       - name: Jev batch
         if: env.HAS_JEV == 'true'

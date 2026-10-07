@@ -49,6 +49,7 @@ TITLE_RULES: list[tuple[CatalystType, re.Pattern]] = [
 ]
 # 業績予想の修正 mà tiêu đề không nói hướng: hướng là SỐ → không hỏi Jev,
 # phải đọc từ 決算短信/PDF bằng code (chưa cài) → giữ loại riêng, bậc LOW.
+BUYBACK_PROGRESS = re.compile(r"取得状況|取得結果|取得終了|取得の終了|取得完了")
 REVISION_NO_DIRECTION = re.compile(r"予想.{0,6}修正")
 
 
@@ -162,6 +163,10 @@ def holidays_of(p: CatalystParams) -> set[date]:
 # --------------------------------------------------------------- phân loại
 def classify_title(title: str) -> list[CatalystType]:
     hits = [t for t, rx in TITLE_RULES if rx.search(title)]
+    # 取得状況/取得結果/取得終了 là báo cáo TIẾN ĐỘ của đợt mua đã công bố — không phải
+    # catalyst mới; tính vào thì công ty đang mua lại có "catalyst ≥中" mỗi tháng.
+    if CatalystType.BUYBACK in hits and BUYBACK_PROGRESS.search(title):
+        hits.remove(CatalystType.BUYBACK)
     if not hits and REVISION_NO_DIRECTION.search(title):
         hits = [CatalystType.FORECAST_REVISION]
     return hits
@@ -294,6 +299,9 @@ def fetch_day(day: date, p: CatalystParams, max_pages: int = 30, session=None
             break
         out.extend(rows)
         time.sleep(p.request_delay_s)
+    else:
+        raise RuntimeError(f"TDnet {day}: trang {max_pages} vẫn còn dòng — tăng max_pages, "
+                           "không cắt im lặng")
     return out
 
 
@@ -302,6 +310,9 @@ def write_day(day: date, rows: list[Disclosure], base: str | Path) -> Path:
     d = Path(base)
     d.mkdir(parents=True, exist_ok=True)
     path = d / f"{day:%Y-%m-%d}.jsonl"
+    if not rows and path.exists() and path.stat().st_size > 0:
+        # parse rỗng (bố cục đổi / trang chưa đầy) KHÔNG được xoá catalyst đã lưu
+        return path
     path.write_text("".join(json.dumps(r.to_json(), ensure_ascii=False) + "\n" for r in rows),
                     encoding="utf-8")
     return path

@@ -1,6 +1,7 @@
 """Bước 1 — universe: thị trường TSE, vốn hoá 50–1000億円, thanh khoản GTGD TB 20 phiên."""
 from __future__ import annotations
 
+import math
 from collections.abc import Sequence
 from datetime import date
 
@@ -35,8 +36,8 @@ def adtv(closes: Sequence[float | None], volumes: Sequence[float | None],
         return None
     vals = []
     for c, v in zip(closes[-window:], volumes[-window:], strict=True):
-        if c is None or v is None:
-            return None
+        if c is None or v is None or not (math.isfinite(c) and math.isfinite(v)):
+            return None   # pandas đưa ô trống ra dạng NaN, không phải None
         vals.append(c * v)
     return sum(vals) / window
 

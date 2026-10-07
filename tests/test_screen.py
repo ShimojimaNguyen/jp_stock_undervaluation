@@ -197,3 +197,12 @@ def test_rnd_returns_python_float_for_numpy():
     v = rnd(np.float64(1.999), 4)
     assert type(v) is float
     assert ge(np.float64(1.999), 2.0, 4) is False   # `is False` phải đúng, không phải np.False_
+
+
+def test_adtv_nan_is_missing_not_fail(params):
+    nan = float("nan")
+    assert adtv([100.0] * 20, [1000.0] * 19 + [nan], 20) is None
+    s = Sourced.of(nan, D, SRC)
+    assert s.value is None
+    with pytest.raises(ValidationError):
+        Sourced(value=nan, as_of=D, source=SRC, quality="live")

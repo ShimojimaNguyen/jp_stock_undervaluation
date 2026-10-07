@@ -110,4 +110,6 @@ jobs:
           git config user.name "tenbagger-bot"
           git config user.email "actions@users.noreply.github.com"
           git commit -m "data: tenbagger-candidates $(date -u +%F)"
+          # nhánh có thể đã đi tiếp trong ~1 giờ job chạy
+          git pull --rebase origin "${GITHUB_REF_NAME}"
           git push

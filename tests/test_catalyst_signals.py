@@ -44,7 +44,10 @@ def test_parse_list(disclosures):
 def test_classify_title_rules():
     assert classify_title("通期業績予想の上方修正及び増配に関するお知らせ") == [
         CatalystType.UPWARD_REVISION, CatalystType.DIVIDEND_INCREASE]
-    assert classify_title("自己株式の取得状況に関するお知らせ") == [CatalystType.BUYBACK]
+    assert classify_title("自己株式取得に係る事項の決定に関するお知らせ") == [CatalystType.BUYBACK]
+    # báo cáo tiến độ/kết thúc của đợt mua đã công bố KHÔNG phải catalyst mới
+    assert classify_title("自己株式の取得状況に関するお知らせ") == []
+    assert classify_title("自己株式の取得結果及び取得終了に関するお知らせ") == []
     assert classify_title("当社株式に対する公開買付けの開始") == [CatalystType.TENDER_OFFER]
     assert classify_title("スタンダード市場からプライム市場への市場区分の変更") == [CatalystType.MARKET_CHANGE]
     assert classify_title("特別損失の計上に関するお知らせ") == [CatalystType.EXTRAORDINARY_LOSS]
@@ -270,3 +273,30 @@ def test_completed_sessions_drops_live_candle():
 def test_disclosure_json_roundtrip(disclosures):
     d = disclosures[0]
     assert Disclosure.from_json(d.to_json()) == d
+
+
+def test_fetch_day_raises_when_pages_exhausted(params, monkeypatch):
+    monkeypatch.setattr("src.catalyst.tdnet.time.sleep", lambda s: None)
+
+    class AllPages(_Sess):
+        def get(self, url, headers=None, timeout=None, params=None):
+            if url.endswith("robots.txt"):
+                return _Resp(404)
+            return _Resp(200, (FIX / "tdnet_list_sample.html").read_text(encoding="utf-8"))
+
+    with pytest.raises(RuntimeError, match="vẫn còn dòng"):
+        fetch_day(DAY, params.catalyst, max_pages=2, session=AllPages(None))
+
+
+def test_write_day_empty_does_not_wipe(tmp_path, disclosures):
+    p = write_day(DAY, disclosures, tmp_path)
+    write_day(DAY, [], tmp_path)
+    assert read_day(p) == disclosures
+
+
+def test_holiday_calendar_from_params(params):
+    from src.catalyst.tdnet import holidays_of
+
+    # thứ Sáu 2026-10-09 sau 15:00 → thứ Hai 10-12 là 体育の日 → thứ Ba 10-13
+    assert effective_date(datetime(2026, 10, 9, 16, 0), "15:00",
+                          holidays_of(params.catalyst)) == date(2026, 10, 13)

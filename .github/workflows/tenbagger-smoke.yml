@@ -53,13 +53,17 @@ jobs:
             case "$u" in *robots.txt) head -c 1500 /tmp/body; echo;; esac
           done
 
-      - name: Thăm dò nguồn thay thế (yfinance, Yahoo JP, EDINET, J-Quants)
-        if: always()
-        run: uv run python -m src.data.probe --codes 7203 6861 3436 4385 6526 2160 | tee "$OUT/probe.json"
+      - name: yfinance (một lát universe)
+        continue-on-error: true
+        run: |
+          uv run python -m src.data.yf_fundamentals --universe data/universe.json \
+            --shard "${{ github.event.inputs.shard || '0/20' }}"
 
       - name: Chẩn đoán độ phủ từng trường
         if: always()
-        run: uv run python -m src.diagnostics --data-dir data --source kabutan | tee "$OUT/diagnostics.json"
+        run: |
+          uv run python -m src.diagnostics --data-dir data --source yfinance > "$OUT/diagnostics.json"
+          uv run python -c "import json;d=json.load(open('$OUT/diagnostics.json'));print('n',d['n']);print('coverage',d['coverage']);print('none',d['none_reasons'])"
 
       - name: Jev batch
         if: env.HAS_JEV == 'true'
@@ -71,16 +75,30 @@ jobs:
       - name: Pipeline trên lát đã tải
         if: always()
         run: |
-          uv run python -m src.pipeline --fundamentals-source kabutan \
+          uv run python -m src.pipeline --fundamentals-source yfinance \
             --universe data/universe.json --only-fetched --min-coverage 0 \
             --fetch-ohlcv --out "$OUT/tenbagger-candidates.json"
-          uv run python -c "
-          import json;d=json.load(open('$OUT/tenbagger-candidates.json'))
-          print('counts',d['counts']);print('notes',d['notes']);print('failures',d['failures'][:20])
-          for c in d['candidates'][:30]:
-              v=c['scorecard']['valuation'];s=c.get('entry_signal') or {}
-              print(c['tier'],c['code'],c['name'],'peg',v['peg'],'ncr',v['net_cash_ratio'],'sig',s.get('signal'),c['tier_reasons'])
-          "
+          uv run python - <<'PY'
+          import json
+          d = json.load(open("smoke-out/tenbagger-candidates.json"))
+          print("COUNTS", d["counts"])
+          print("FAILURES", d["failures"][:10])
+          def line(c):
+              sc = c["scorecard"]; v = sc["valuation"]; u = sc["universe"]
+              chk = {x["name"]: x["value"] for x in sc["growth"]["checks"]}
+              s = c.get("entry_signal") or {}
+              return (f"{c['tier']:4} {c['code']} {c['name']} mcap={u['market_cap']['value']} "
+                      f"adtv={u['adtv']['value']} uni={u['passed']} cagr={chk['revenue_cagr']} "
+                      f"eq={chk['equity_ratio']} ncr={v['net_cash_ratio']} sig={s.get('signal')}")
+          for c in d["candidates"]:
+              print("CAND", line(c))
+          for c in d["awaiting_forecast"]:
+              print("WAIT", line(c))
+          PY
+
+      - name: Trạng thái HTTP các nguồn khác
+        if: always()
+        run: uv run python -m src.data.probe --codes 7203 | tail -n 1
 
       - uses: actions/upload-artifact@v4
         if: always()

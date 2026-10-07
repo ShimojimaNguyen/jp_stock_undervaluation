@@ -410,6 +410,9 @@ class CandidateExport(_Model):
     universe_count: int
     counts: dict[str, int]
     candidates: list[TenBaggerCandidate]
+    awaiting_forecast: list[TenBaggerCandidate] = Field(
+        default_factory=list,
+        description="tầng NONE CHỈ vì thiếu 会社予想: mọi check bước 2 đo được đều đạt")
     failures: list[str] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
 

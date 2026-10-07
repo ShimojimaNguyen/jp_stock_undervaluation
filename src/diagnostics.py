@@ -14,17 +14,19 @@ from pathlib import Path
 
 from src.data.adapters import JsonFundamentalsSource
 from src.data.kabutan_finance import KabutanPriceSource
+from src.data.yf_fundamentals import YFPriceSource
 from src.params import default_params
 from src.screen.growth import growth_gate
 
 
 def report(data_dir: Path, source: str, sample: int = 5) -> dict:
     fs = JsonFundamentalsSource(source, base=data_dir / "fundamentals")
-    px = KabutanPriceSource(data_dir)
+    px = YFPriceSource(data_dir) if source == "yfinance" else KabutanPriceSource(data_dir)
     p = default_params()
     codes = fs.codes()
     n = len(codes)
-    cnt = {k: 0 for k in ("market", "price", "mcap_reported", "annual4", "forecast_op",
+    cnt = {k: 0 for k in ("market", "price", "mcap_reported", "shares_treasury",
+                          "net_cash_parts", "annual4", "forecast_op",
                           "forecast_irregular", "cfo_last", "balance_sheet", "growth_pass",
                           "growth_insufficient")}
     fail_reasons: dict[str, int] = {}
@@ -35,6 +37,12 @@ def report(data_dir: Path, source: str, sample: int = 5) -> dict:
         cnt["market"] += f.market is not None
         cnt["price"] += bool(s and s.close.value is not None)
         cnt["mcap_reported"] += f.market_cap_reported.value is not None
+        cnt["shares_treasury"] += (f.shares_issued.value is not None
+                                   and f.treasury_shares.value is not None)
+        b = f.balance_sheet
+        cnt["net_cash_parts"] += bool(b and None not in (b.current_assets,
+                                                         b.investment_securities,
+                                                         b.total_liabilities))
         cnt["annual4"] += len(f.annual) >= 4
         cnt["forecast_op"] += bool(f.forecast and f.forecast.operating_profit is not None)
         cnt["forecast_irregular"] += bool(f.forecast and f.forecast.irregular)

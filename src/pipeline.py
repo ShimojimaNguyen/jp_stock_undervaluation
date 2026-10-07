@@ -172,6 +172,19 @@ def evaluate_code(code: str, f: Fundamentals | None, snap: PriceSnapshot | None,
 
 
 # --------------------------------------------------------------- export
+FORECAST_CHECKS = {"op_forecast_growth", "opm_improving"}
+
+
+def awaiting_forecast(c: TenBaggerCandidate) -> bool:
+    """NONE chỉ vì thiếu dự báo công ty: mọi check KHÁC của bước 2 đạt, check dự báo None."""
+    g = c.scorecard.growth
+    if c.tier is not Tier.NONE or g is None:
+        return False
+    other = [ch for ch in g.checks if ch.name not in FORECAST_CHECKS]
+    fc = [ch for ch in g.checks if ch.name in FORECAST_CHECKS]
+    return all(ch.passed is True for ch in other) and all(ch.passed is None for ch in fc)
+
+
 def build_export(cands: list[TenBaggerCandidate], as_of: date, p: Params, failures: list[str],
                  notes: list[str]) -> CandidateExport:
     counts = {t.value: sum(1 for c in cands if c.tier is t) for t in Tier}
@@ -179,9 +192,11 @@ def build_export(cands: list[TenBaggerCandidate], as_of: date, p: Params, failur
         1 for c in cands if c.scorecard.growth and c.scorecard.growth.insufficient_data)
     kept = sorted((c for c in cands if c.tier is not Tier.NONE),
                   key=lambda c: (c.tier.value, c.code))
+    awaiting = sorted((c for c in cands if awaiting_forecast(c)), key=lambda c: c.code)
+    counts["awaiting_forecast"] = len(awaiting)
     return CandidateExport(generated_at=datetime.now(timezone.utc), as_of=as_of,
                            params_version=p.version, universe_count=len(cands), counts=counts,
-                           candidates=kept, failures=failures, notes=notes)
+                           candidates=kept, awaiting_forecast=awaiting, failures=failures, notes=notes)
 
 
 def write_export(exp: CandidateExport, sample: bool, path: Path = EXPORT_PATH) -> Path:
@@ -250,6 +265,7 @@ def fundamentals_coverage(codes: list[str], fs) -> float:
 def main(argv: list[str] | None = None) -> int:
     from src.data.adapters import JsonFundamentalsSource, KiyoharaSnapshotSource
     from src.data.kabutan_finance import KabutanPriceSource
+    from src.data.yf_fundamentals import YFPriceSource
     from src.jev.registry import default_registry
     from src.params import default_params
     from src.signals.gainers import completed_sessions, fetch_chart
@@ -275,7 +291,11 @@ def main(argv: list[str] | None = None) -> int:
     cache = JudgmentCache(ROOT / p.jev.cache_path)
     as_of = date.fromisoformat(a.as_of) if a.as_of else date.today()
     fs = JsonFundamentalsSource(a.fundamentals_source, base=Path(a.data_dir) / "fundamentals")
-    prices = PriceChain([KiyoharaSnapshotSource(a.snapshot), KabutanPriceSource(a.data_dir)],
+    price_sources = [KiyoharaSnapshotSource(a.snapshot), KabutanPriceSource(a.data_dir)]
+    if a.fundamentals_source == "yfinance":
+        # giá cùng nguồn với 発行済/自己株 → 時価総額 công thức 清原 nhất quán
+        price_sources = [YFPriceSource(a.data_dir)]
+    prices = PriceChain(price_sources,
                         last_completed_session(as_of, _session_closed(as_of),
                                                holidays_of(p.catalyst)))
     markets: dict[str, str] = {}
@@ -303,7 +323,8 @@ def main(argv: list[str] | None = None) -> int:
                            checklist_question_ids(p))
         snap = prices.snapshot(code)
         c = evaluate_code(code, f, snap, None, js, cats.get(code, []), as_of, p)
-        if a.fetch_ohlcv and c.scorecard.growth and c.scorecard.growth.passed:
+        if a.fetch_ohlcv and ((c.scorecard.growth and c.scorecard.growth.passed)
+                              or awaiting_forecast(c)):
             try:
                 ohlcv = completed_sessions(fetch_chart(code, p.signals.user_agent), as_of,
                                            market_closed=_session_closed(as_of))

@@ -77,9 +77,9 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--codes", nargs="+", default=["7203", "6861", "3436"])
     a = ap.parse_args(argv)
-    print(json.dumps({"http": http_status()}, ensure_ascii=False, indent=1))
     for c in a.codes:
-        print(json.dumps({c: yf_probe(c)}, ensure_ascii=False, indent=1))
+        print(json.dumps({c: yf_probe(c)}, ensure_ascii=False))
+    print(json.dumps({"http": http_status()}, ensure_ascii=False))   # in cuối = nằm ở đuôi log
     return 0
 
 

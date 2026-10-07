@@ -983,6 +983,14 @@
       "title": "Candidates",
       "type": "array"
     },
+    "awaiting_forecast": {
+      "description": "tầng NONE CHỈ vì thiếu 会社予想: mọi check bước 2 đo được đều đạt",
+      "items": {
+        "$ref": "#/$defs/TenBaggerCandidate"
+      },
+      "title": "Awaiting Forecast",
+      "type": "array"
+    },
     "failures": {
       "items": {
         "type": "string"

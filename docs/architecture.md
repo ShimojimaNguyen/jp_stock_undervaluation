@@ -63,18 +63,27 @@ cho A). Hiện `tiers.b_requires_universe: true`.
 
 ---
 
-## Nguồn dữ liệu
+## Nguồn dữ liệu (đo thật trên GitHub Actions, 2026-10-07/08)
 
-| dữ liệu | nguồn | trạng thái |
+| dữ liệu | nguồn | trạng thái từ Actions |
 |---|---|---|
-| giá ngày, PER dự phóng | `kiyohara/data/snapshots-kabutan-latest.json` (đặt `KIYOHARA_SNAPSHOT`) | **chỉ phủ TOPIX Core30/Large70/Mid400 (~492 mã)** — phần lớn mã 50–1000億円 KHÔNG có trong đó |
-| OHLCV ngày | Yahoo chart v8 `query1.finance.yahoo.com` | code xong; chưa chạy thật (proxy môi trường dựng code chặn host này) |
-| công bố | TDnet `www.release.tdnet.info/inbs/I_list_NNN_YYYYMMDD.html` | parser theo cấu trúc đã biết, **chưa đối chiếu trang thật** (proxy chặn); `fetch_day` tự đọc robots.txt, từ chối nếu cấm/không đọc được |
-| 4 năm doanh thu/OP/EPS + dự báo, sàn, giá, 時価総額 (proxy bước 1) | 株探 `/stock/finance` — `src/data/kabutan_finance.py` | **xong**, kiểm trên 4 trang thật |
-| 自己資本/総資産, 営業CF | cùng trang 株探 (bảng 財務 / キャッシュフロー) | parser theo nhãn cột, **chưa có HTML thật** — kiểm ở lần chạy đầu |
-| 流動資産/投資有価証券/負債合計, 発行済/自己株, 大株主, 役員持株 | EDINET API v2 (cần `EDINET_API_KEY`) | **chưa nối** → net cash 清原 null → chưa ai lên tầng A |
-| danh sách mã + thị trường toàn TSE | JPX `data_j` — `src/data/jpx_universe.py` | **xong**; cột 市場・商品区分 chưa kiểm file thật |
+| danh sách mã + thị trường toàn TSE | JPX `data_j` — `src/data/jpx_universe.py` | ✅ 3.702 mã (as_of 2026-09-30) |
+| 4–5 năm doanh thu/OP/EPS/CFO; 流動資産, 投資有価証券, 負債合計, 自己資本, 総資産, 発行済, 自己株; giá | yfinance — `src/data/yf_fundamentals.py` | ✅ 186/186; phủ 4 năm 96%, CFO 99%, 発行済/自己株 96%, đủ thành phần net cash 84% |
+| **会社予想** (売上高/営業利益/純利益) + lịch sử sửa dự báo + năm thực hiện JGAAP | Yahoo!ファイナンス `/quote/{code}.T/performance` — `src/data/yahoojp_forecast.py` | ✅ HTTP 200; **chặn sau ~85 mã** → chỉ hỏi mã qua mọi check khác của bước 2, ≤60/ngày, giãn 3s |
+| OHLCV ngày | Yahoo chart v8 | ✅ HTTP 200 |
+| 株探 `/stock/finance` | `src/data/kabutan_finance.py` | ❌ AWS WAF "Human Verification" (HTTP 405) với IP Actions. Không né bot protection. Chạy được từ máy cá nhân (như kiyohara). |
+| TDnet danh sách công bố | `src/catalyst/tdnet.py` | ❌ robots.txt `User-agent: * / Disallow: /` — cấm crawl. Code tự dừng. Catalyst 上方/下方修正 thay bằng `forecastRevisionList` của Yahoo JP (tính bằng code). |
+| EDINET API v2 | — | trả lời từ Actions; cần `EDINET_API_KEY` (大株主/役員持株, 事業の内容 cho Jev) — chưa nối |
+| J-Quants | — | HTTP 403 không auth — cần tài khoản |
+| snapshot kiyohara | `KIYOHARA_SNAPSHOT` | chỉ TOPIX500; không dùng khi nguồn cơ bản là yfinance (giá phải cùng nguồn với 発行済/自己株) |
 | số cổ đông, 流通株式 (tiêu chí Prime) | chưa có nguồn | `prime_eligibility` trả null |
+
+Quy ước khi ghép nguồn:
+- Yahoo JP `/performance` có HAI khối dự báo: `forecast` (会社予想, yên) và
+  `performanceForecastList` (analyst, 百万円, có `totalSampleCount`). Chỉ dùng khối đầu.
+- EPS dự phóng không có ở nguồn → `純利益予想 × EPS/純利益 năm gần nhất` (cùng cơ sở cổ phiếu).
+- So dự báo với năm thực hiện của CÙNG trang Yahoo JP; OP lệch yfinance >5% ghi vào `notes`.
+- yfinance `Investmentin Financial Assets = 0.0` coi là không công bố → net cash null.
 
 Không có nguồn = `null` xuyên suốt, không bao giờ giá trị mặc định.
 

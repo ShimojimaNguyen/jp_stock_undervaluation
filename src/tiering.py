@@ -40,7 +40,11 @@ def assign_tier(sc: ScoreCard, as_of: date, p: Params) -> tuple[Tier, list[str],
     uni = bool(sc.universe and sc.universe.passed)
     grw = bool(sc.growth and sc.growth.passed)
     if not grw:
-        why = "insufficient_data" if sc.growth and sc.growth.insufficient_data else "fail"
+        # Một check ĐO ĐƯỢC đã trượt → "fail", dù check khác còn trống: trống ở đây
+        # thường vì không cần tra (vd không hỏi 会社予想 cho mã đã trượt CAGR).
+        known_fail = bool(sc.growth and any(c.passed is False for c in sc.growth.checks))
+        why = "fail" if known_fail or not sc.growth else (
+            "insufficient_data" if sc.growth.insufficient_data else "fail")
         return Tier.NONE, [], [f"growth:{why}"]
     reasons.append("growth:pass")
     if uni:

@@ -188,8 +188,14 @@ def awaiting_forecast(c: TenBaggerCandidate) -> bool:
 def build_export(cands: list[TenBaggerCandidate], as_of: date, p: Params, failures: list[str],
                  notes: list[str]) -> CandidateExport:
     counts = {t.value: sum(1 for c in cands if c.tier is t) for t in Tier}
-    counts["insufficient_growth_data"] = sum(
-        1 for c in cands if c.scorecard.growth and c.scorecard.growth.insufficient_data)
+    def _g(c):
+        return c.scorecard.growth.checks if c.scorecard.growth else []
+
+    counts["growth_failed_known_check"] = sum(
+        1 for c in cands if any(ch.passed is False for ch in _g(c)))
+    counts["insufficient_growth_data"] = sum(   # KHÔNG check nào trượt, nhưng có check trống
+        1 for c in cands if _g(c) and not any(ch.passed is False for ch in _g(c))
+        and any(ch.passed is None for ch in _g(c)))
     kept = sorted((c for c in cands if c.tier is not Tier.NONE),
                   key=lambda c: (c.tier.value, c.code))
     awaiting = sorted((c for c in cands if awaiting_forecast(c)), key=lambda c: c.code)

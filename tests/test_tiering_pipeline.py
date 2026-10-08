@@ -212,3 +212,16 @@ def test_export_missing_numbers_are_null_not_zero(params, field):
     c = evaluate_code("9998", None, None, None, {}, [], AS_OF, params)
     dumped = json.loads(c.model_dump_json())
     assert dumped["scorecard"]["valuation"][field] is None
+
+
+def test_known_fail_not_labelled_insufficient(params):
+    """Bug nhãn (smoke 2026-10-08): mã trượt CAGR nhưng chưa tra 会社予想 bị đếm là 'thiếu dữ liệu'."""
+    f = make_fundamentals(forecast=None)
+    rows = list(f.annual)
+    rows[0] = rows[0].model_copy(update={"revenue": 140e8})   # CAGR ~3% → trượt
+    c = evaluate_code("9999", f.model_copy(update={"annual": rows}), _snap(), None, {}, [],
+                      AS_OF, params)
+    assert c.tier is Tier.NONE and c.tier_reasons == ["growth:fail"]
+    exp = build_export([c], AS_OF, params, [], [])
+    assert exp.counts["growth_failed_known_check"] == 1
+    assert exp.counts["insufficient_growth_data"] == 0

@@ -265,7 +265,12 @@ def fundamentals_coverage(codes: list[str], fs) -> float:
 def main(argv: list[str] | None = None) -> int:
     from src.data.adapters import JsonFundamentalsSource, KiyoharaSnapshotSource
     from src.data.kabutan_finance import KabutanPriceSource
-    from src.data.yahoojp_forecast import YahooJPForecastStore, revision_events, to_forecast
+    from src.data.yahoojp_forecast import (
+        YahooJPForecastStore,
+        revision_events,
+        to_annuals,
+        to_forecast,
+    )
     from src.data.yf_fundamentals import YFPriceSource
     from src.jev.registry import default_registry
     from src.params import default_params
@@ -320,13 +325,24 @@ def main(argv: list[str] | None = None) -> int:
     def eff(dt):
         return effective_date(dt, p.catalyst.cutoff_hhmm, hol)
 
-    cands, failures = [], []
+    cands, failures, source_conflicts = [], [], []
     for code in codes:
         f = fs.get(code)
         extra_cats: list[CatalystEvent] = []
         stored = fc_store.get(code)
         if f is not None and stored is not None:
             fetched = date.fromisoformat(stored["fetched"])
+            yj = to_annuals(stored.get("actuals") or [], fetched)
+            if len(yj) >= min(len(f.annual), 4) and yj:
+                # So dự báo với thực hiện CÙNG nguồn/định nghĩa (営業利益 JGAAP của
+                # 決算短信). Đối chiếu OP năm gần nhất với yfinance; lệch >5% → ghi chú.
+                ylast = {a.fiscal_period: a for a in f.annual}.get(yj[-1].fiscal_period)
+                if (ylast and ylast.operating_profit and yj[-1].operating_profit
+                        and abs(ylast.operating_profit / yj[-1].operating_profit - 1) > 0.05):
+                    source_conflicts.append(
+                        f"{code} OP {yj[-1].fiscal_period}: yfinance {ylast.operating_profit:.0f}"
+                        f" vs Yahoo JP {yj[-1].operating_profit:.0f}")
+                f = f.model_copy(update={"annual": yj})
             if f.forecast is None and stored.get("forecast"):
                 f = f.model_copy(update={"forecast": to_forecast(stored["forecast"], f, fetched)})
             upd = (stored.get("forecast") or {}).get("updatedDate")
@@ -353,7 +369,9 @@ def main(argv: list[str] | None = None) -> int:
         cands.append(c)
     notes = [f"nguồn cơ bản: {fs.name} (phủ {cov:.1%} universe)", f"nguồn giá: {prices.name}",
              f"tiêu đề TDnet chưa có phán đoán Jev: {pending}",
-             "net cash 清原 cần EDINET (流動資産/投資有価証券/負債合計/発行済/自己株) — thiếu thì null"]
+             "net cash 清原: 流動資産/投資有価証券/負債合計/発行済/自己株 từ yfinance (đầu tư 0 hoặc thiếu → null)",
+             "năm thực hiện + 会社予想: Yahoo!ファイナンス 業績 cho mã đã tra; mã khác: yfinance"]
+    notes += [f"lệch nguồn: {x}" for x in source_conflicts[:50]]
     exp = build_export(cands, as_of, p, failures, notes)
     if not a.limit and cov < a.min_coverage:
         print(f"độ phủ cơ bản {cov:.1%} < {a.min_coverage:.0%} — KHÔNG ghi đè artifact production")

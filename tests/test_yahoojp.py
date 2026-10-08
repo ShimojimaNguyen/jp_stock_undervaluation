@@ -105,3 +105,18 @@ def test_pipeline_merges_forecast(tmp_path, params):
     checks = {x["name"]: x["passed"] for x in c["scorecard"]["growth"]["checks"]}
     assert checks["op_forecast_growth"] is True and checks["opm_improving"] is True
     assert c["scorecard"]["valuation"]["eps_growth"] == 0.25
+
+
+def test_parse_actuals_real_6339():
+    from src.data.yahoojp_forecast import parse_actuals, to_annuals
+
+    page = (Path(__file__).parent / "fixtures" / "yahoojp" / "performance-6339.html").read_text(
+        encoding="utf-8")
+    rows = parse_actuals(page)
+    a = to_annuals(rows, D)
+    assert [x.fiscal_period for x in a] == ["2025.03", "2026.03"]
+    last = a[-1]
+    assert last.operating_profit == 3_831_000_000 and last.net_income == -16_262_000_000
+    assert last.eps == -309.66 and last.cfo == 8_843_000_000
+    assert last.announced == date(2026, 5, 13)
+    assert parse_actuals(PAGE) == []          # trang 1870 trích không có khối performance

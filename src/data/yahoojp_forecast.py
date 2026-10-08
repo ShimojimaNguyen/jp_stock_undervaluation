@@ -24,6 +24,7 @@ from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
 from src.contracts import (
+    AnnualResult,
     CatalystEvent,
     CatalystStrength,
     CatalystType,
@@ -69,6 +70,38 @@ def _json_after(text: str, key: str) -> object | None:
 
 def _unescape(page: str) -> str:
     return page.replace('\\"', '"')
+
+
+def parse_actuals(page: str) -> list[dict]:
+    """Khối "performance":{"performance":[…]} — số THỰC HIỆN theo năm (fiscalQuarter Q4)."""
+    t = _unescape(page)
+    blk = _json_after(t, "performance")
+    rows = blk.get("performance") if isinstance(blk, dict) else None
+    if not isinstance(rows, list):
+        return []
+    return [r for r in rows if isinstance(r, dict) and r.get("fiscalQuarter") == "Q4"
+            and r.get("endDate")]
+
+
+def to_annuals(rows: list[dict], fetched: date) -> list[AnnualResult]:
+    """Năm thực hiện CÙNG NGUỒN với 会社予想 → so dự báo với thực hiện cùng định nghĩa."""
+    out: list[AnnualResult] = []
+    prev: date | None = None
+    for r in sorted(rows, key=lambda r: r["endDate"]):
+        end = date.fromisoformat(r["endDate"])
+        months = 12
+        if prev is not None and abs((end - prev).days - 365) > 20:
+            months = None
+        rep = r.get("reportedDate")
+        out.append(AnnualResult(
+            fiscal_period=f"{end.year:04d}.{end.month:02d}", months=months,
+            revenue=_num(r, "netSales"), operating_profit=_num(r, "operatingIncome"),
+            net_income=_num(r, "netIncome"), eps=_num(r, "epsActual"),
+            cfo=_num(r, "operatingCashFlow"),
+            announced=date.fromisoformat(rep) if rep else None,
+            source="Yahoo!ファイナンス 業績 (実績)", as_of=fetched))
+        prev = end
+    return out
 
 
 def parse_performance(page: str) -> tuple[dict | None, list[dict]]:
@@ -149,10 +182,12 @@ class YahooJPForecastStore:
         p = self.dir / f"{code}.json"
         return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
 
-    def put(self, code: str, raw: dict | None, revs: list[dict], fetched: date) -> None:
+    def put(self, code: str, raw: dict | None, revs: list[dict], fetched: date,
+            actuals: list[dict] | None = None) -> None:
         self.dir.mkdir(parents=True, exist_ok=True)
         (self.dir / f"{code}.json").write_text(json.dumps(
-            {"fetched": fetched.isoformat(), "forecast": raw, "revisions": revs},
+            {"fetched": fetched.isoformat(), "forecast": raw, "revisions": revs,
+             "actuals": actuals or []},
             ensure_ascii=False) + "\n", encoding="utf-8")
 
 
@@ -207,7 +242,7 @@ def main(argv: list[str] | None = None) -> int:
                 break
             continue
         raw, revs = parse_performance(r.text)
-        store.put(c, raw, revs, today)
+        store.put(c, raw, revs, today, parse_actuals(r.text))
         got += 1
     print(f"yahoojp forecast: {got}/{len(todo)} (cần {len(codes)}, trần {a.max}), "
           f"lỗi {failures[:10]}")

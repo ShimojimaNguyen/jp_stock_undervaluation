@@ -1,12 +1,13 @@
 name: tenbagger-daily
 
-# Chạy flow 10-bagger thật ở chỗ có mạng: JPX, 株探, TDnet, Yahoo chart v8, Jev.
-# Môi trường dựng code (Claude Code cloud) chặn các host này nên KHÔNG chạy ở đó.
+# Chạy flow 10-bagger thật ở chỗ có mạng. Nguồn dùng được TỪ ACTIONS (đo 2026-10-07):
+#   JPX data_j ✓ · yfinance ✓ · Yahoo chart v8 ✓ · Yahoo JP /performance ✓ (trần)
+#   株探 ✗ (AWS WAF chặn IP Actions — không né) · TDnet ✗ (robots Disallow: /)
 #
 # NHỊP: 07:45 UTC thứ Hai–Sáu = 16:45 JST, sau khi TSE đóng cửa (15:30).
-# 株探 có Crawl-delay 3s → toàn TSE (~3.800 mã) ≈ 3,4 giờ. Chia 5 shard theo thứ
-# trong tuần (~45 phút/ngày): mỗi mã được làm mới mỗi tuần — đủ, vì dữ liệu
-# năm/dự báo đổi theo quý. Lần đầu: chạy tay với shard=all.
+# yfinance ~1,3s/mã → toàn TSE (~3.700 mã) ≈ 80 phút; chia 5 shard theo thứ trong
+# tuần. 会社予想 chỉ hỏi cho mã đã qua mọi check khác của bước 2, ≤60/ngày.
+# Lần đầu: chạy tay với shard=all.
 #
 # DỮ LIỆU NGUỒN không lên git (bản sao vendor, repo public) → giữ giữa các lần
 # chạy bằng actions/cache. CHỈ data/tenbagger-candidates.json được commit, và chỉ
@@ -54,7 +55,7 @@ jobs:
             data/universe.json
             data/fundamentals
             data/prices
-            data/tdnet
+            data/forecasts
             data/jev-cache.jsonl
           key: tenbagger-data-${{ github.run_id }}
           restore-keys: tenbagger-data-
@@ -67,26 +68,31 @@ jobs:
           fi
           test -f data/universe.json
 
-      - name: 株探 /stock/finance
+      - name: yfinance (1/5 universe theo thứ trong tuần)
         run: |
           shard="${{ github.event.inputs.shard || 'auto' }}"
           if [ "$shard" = "auto" ]; then shard="$(( $(date -u +%u) - 1 ))/5"; fi
           if [ "$shard" = "all" ]; then shard="0/1"; fi
-          uv run python -m src.data.kabutan_finance --universe data/universe.json \
+          uv run python -m src.data.yf_fundamentals --universe data/universe.json \
             --shard "$shard" --limit "${{ github.event.inputs.limit || '0' }}"
 
-      - name: TDnet (5 ngày gần nhất, chỉ metadata)
-        run: uv run python -m src.catalyst.tdnet --days 5 || echo "::warning::TDnet lỗi một phần"
+      - name: Pipeline lần 1 (tìm mã chờ 会社予想)
+        run: |
+          uv run python -m src.pipeline --fundamentals-source yfinance \
+            --universe data/universe.json --min-coverage 0 --out data/pass1.json
 
-      - name: Jev batch (mã qua bước 2 + tiêu đề TDnet không khớp rule)
+      - name: 会社予想 Yahoo JP (trần 60/ngày, giãn 3s — nguồn chặn sau ~85 mã)
+        run: uv run python -m src.data.yahoojp_forecast --from data/pass1.json --max 60
+
+      - name: Jev batch (mã qua bước 2)
         if: env.HAS_JEV == 'true'
         env:
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
-        run: uv run python -m src.jev.run --fundamentals-source kabutan || echo "::warning::Jev lỗi một phần"
+        run: uv run python -m src.jev.run --fundamentals-source yfinance || echo "::warning::Jev lỗi một phần"
 
       - name: Pipeline 8 bước
         run: |
-          uv run python -m src.pipeline --fundamentals-source kabutan \
+          uv run python -m src.pipeline --fundamentals-source yfinance \
             --universe data/universe.json --fetch-ohlcv
 
       - name: Lưu dữ liệu nguồn
@@ -97,7 +103,7 @@ jobs:
             data/universe.json
             data/fundamentals
             data/prices
-            data/tdnet
+            data/forecasts
             data/jev-cache.jsonl
           key: tenbagger-data-${{ github.run_id }}
 

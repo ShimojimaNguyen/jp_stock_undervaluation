@@ -120,3 +120,17 @@ def test_parse_actuals_real_6339():
     assert last.eps == -309.66 and last.cfo == 8_843_000_000
     assert last.announced == date(2026, 5, 13)
     assert parse_actuals(PAGE) == []          # trang 1870 trích không có khối performance
+
+
+def test_official_equity_overrides_yfinance_definition():
+    from src.contracts import BalanceSheet
+    from src.pipeline import with_official_equity
+
+    bs = BalanceSheet(period_end=date(2026, 3, 31), current_assets=1.0, investment_securities=1.0,
+                      total_liabilities=1.0, equity=65.1, total_assets=100.0, source="yf", as_of=D)
+    f = _f(balance_sheet=bs)
+    rows = [{"endDate": "2026-03-31", "assets": 100.0, "equity": 62.78}]
+    g = with_official_equity(f, rows)
+    assert g.balance_sheet.equity == 62.78 and g.balance_sheet.current_assets == 1.0
+    old = [{"endDate": "2025-03-31", "assets": 100.0, "equity": 50.0}]
+    assert with_official_equity(f, old).balance_sheet.equity == 65.1   # kỳ cũ hơn → giữ

@@ -172,6 +172,26 @@ def evaluate_code(code: str, f: Fundamentals | None, snap: PriceSnapshot | None,
 
 
 # --------------------------------------------------------------- export
+def with_official_equity(f: Fundamentals, actuals: list[dict]) -> Fundamentals:
+    """自己資本/総資産 lấy theo 決算短信 (Yahoo JP) thay cho yfinance `Stockholders Equity`.
+
+    Smoke 2026-10-09: 2436 tự tính 65,1% vs 自己資本比率 công bố 62,8% — khác ĐỊNH
+    NGHĨA (yfinance gộp khoản khác vào equity). Chỉ thay khi kỳ Yahoo JP ≥ kỳ BS hiện có.
+    Thành phần net cash (流動資産/投資有価証券/負債合計) giữ nguyên từ yfinance.
+    """
+    rows = [r for r in actuals if r.get("assets") and r.get("equity") and r.get("endDate")]
+    if not rows or f.balance_sheet is None:
+        return f
+    r = max(rows, key=lambda r: r["endDate"])
+    end = date.fromisoformat(r["endDate"])
+    if end < f.balance_sheet.period_end:
+        return f
+    bs = f.balance_sheet.model_copy(update={
+        "equity": float(r["equity"]), "total_assets": float(r["assets"]), "period_end": end,
+        "source": f.balance_sheet.source + " · 自己資本/総資産: Yahoo!ファイナンス 業績 (決算短信)"})
+    return f.model_copy(update={"balance_sheet": bs})
+
+
 FORECAST_CHECKS = {"op_forecast_growth", "opm_improving"}
 
 
@@ -349,6 +369,7 @@ def main(argv: list[str] | None = None) -> int:
                         f"{code} OP {yj[-1].fiscal_period}: yfinance {ylast.operating_profit:.0f}"
                         f" vs Yahoo JP {yj[-1].operating_profit:.0f}")
                 f = f.model_copy(update={"annual": yj})
+            f = with_official_equity(f, stored.get("actuals") or [])
             if f.forecast is None and stored.get("forecast"):
                 f = f.model_copy(update={"forecast": to_forecast(stored["forecast"], f, fetched)})
             upd = (stored.get("forecast") or {}).get("updatedDate")

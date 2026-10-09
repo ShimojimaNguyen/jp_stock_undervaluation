@@ -66,21 +66,24 @@ def verify_candidate(c: dict, yf_f: dict | None, yj: dict | None,
         dd = abs(ours - theirs) if ours is not None and theirs is not None else None
         out["equity_ratio"] = {"ours": ours, "yahoo_jp": theirs, "diff": dd,
                                "status": _status(dd, TOL["equity_ratio_pt"])}
-        # CAGR: chuỗi doanh thu vs tích (1+YoY) do nguồn tự in — kiểm nội bộ nguồn
-        if len(yj_rows) >= 4 and all(r.get("netSalesYoy") is not None for r in yj_rows[-3:]):
-            prod = 1.0
-            for r in yj_rows[-3:]:
-                prod *= 1 + r["netSalesYoy"] / 100
-            via_yoy = prod ** (1 / 3) - 1
-            ch = {x["name"]: x["value"] for x in sc["growth"]["checks"]}
-            ours_cagr = ch.get("revenue_cagr")
-            dd = abs(ours_cagr - via_yoy) if ours_cagr is not None else None
-            out["revenue_cagr"] = {"ours": ours_cagr, "via_yoy": via_yoy, "diff": dd,
-                                   "status": _status(dd, TOL["cagr"])}
+        # Chuỗi doanh thu: MỌI năm trùng giữa hai nguồn phải khớp — CAGR tính trên chuỗi
+        # này nên khớp chuỗi = CAGR có đường đối chiếu. Cần ≥2 năm trùng mới kết luận.
+        yf_by = {a["fiscal_period"]: a.get("revenue") for a in yf_annual}
+        diffs = []
+        for r in yj_rows:
+            per = r["endDate"][:4] + "." + r["endDate"][5:7]
+            dd = _rel(yf_by.get(per), r.get("netSales"))
+            if dd is not None:
+                diffs.append((per, round(dd, 4)))
+        if len(diffs) >= 2:
+            worst = max(d for _, d in diffs)
+            out["revenue_series"] = {"years": diffs, "diff": worst,
+                                     "status": _status(worst, TOL["revenue"])}
         else:
-            out["revenue_cagr"] = {"status": "unchecked", "why": "thiếu 4 năm YoY ở Yahoo JP"}
+            out["revenue_series"] = {"status": "unchecked", "years": diffs,
+                                     "why": "ít hơn 2 năm trùng giữa hai nguồn"}
     else:
-        for k in ("revenue", "operating_profit", "cfo", "equity_ratio", "revenue_cagr"):
+        for k in ("revenue", "operating_profit", "cfo", "equity_ratio", "revenue_series"):
             out[k] = {"status": "unchecked", "why": "thiếu dữ liệu Yahoo JP hoặc yfinance"}
     return out
 

@@ -35,6 +35,17 @@ jobs:
       - run: uv sync
       - run: mkdir -p "$OUT"
 
+      # Yahoo JP chặn IP sau ~85 request (đo 2026-10-09: smoke liền nhau bị 500 sau 41).
+      # Giữ dự báo + cache Jev giữa các lần smoke để không tải lại thứ đã có.
+      - name: Khôi phục cache smoke
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            data/forecasts
+            data/jev-cache.jsonl
+          key: smoke-data-${{ github.run_id }}
+          restore-keys: smoke-data-
+
       - name: Universe JPX
         run: |
           uv run python -m src.data.jpx_universe --out data/universe.json
@@ -133,9 +144,14 @@ jobs:
         if: always()
         run: uv run python -m src.verify --export "$OUT/tenbagger-candidates.json" --data-dir data
 
-      - name: Thăm dò bằng chứng văn bản cho Jev — Yahoo JP /profile (1 request)
+      - name: Lưu cache smoke
         if: always()
-        run: uv run python -m src.data.probe --yahoo-jp 3091 --suffix /profile
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            data/forecasts
+            data/jev-cache.jsonl
+          key: smoke-data-${{ github.run_id }}
 
       - uses: actions/upload-artifact@v4
         if: always()

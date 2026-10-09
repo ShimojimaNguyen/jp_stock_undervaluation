@@ -59,9 +59,9 @@ def verify_candidate(c: dict, yf_f: dict | None, yj: dict | None,
             dd = _rel(a, b)
             out[key] = {"period": period, "yfinance": a, "yahoo_jp": b, "diff": dd,
                         "status": _status(dd, tol)}
-        bs = (yf_f or {}).get("balance_sheet") or {}
-        ours = (bs.get("equity") / bs["total_assets"]) if bs.get("equity") and bs.get(
-            "total_assets") else None
+        # Đo số mà CỔNG THỰC DÙNG (scorecard), không phải số thô của một nguồn: smoke
+        # 2026-10-09 báo mismatch cho 2436 dù cổng đã dùng 自己資本比率 chính thức.
+        ours = {x["name"]: x["value"] for x in sc["growth"]["checks"]}.get("equity_ratio")
         theirs = last.get("equityRatio") / 100 if last.get("equityRatio") is not None else None
         dd = abs(ours - theirs) if ours is not None and theirs is not None else None
         out["equity_ratio"] = {"ours": ours, "yahoo_jp": theirs, "diff": dd,

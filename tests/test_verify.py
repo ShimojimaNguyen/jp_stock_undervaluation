@@ -12,10 +12,11 @@ YF = {"annual": [{"fiscal_period": "2025.03", "revenue": 132.25e8},
       "balance_sheet": {"equity": 90e8, "total_assets": 150e8}}
 
 
-def _cand(mcap=190e8, cagr=0.15):
+def _cand(mcap=190e8, cagr=0.15, eq=0.6):
     return {"code": "9999", "scorecard": {
         "universe": {"market_cap": {"value": mcap}},
-        "growth": {"checks": [{"name": "revenue_cagr", "value": cagr}]}}}
+        "growth": {"checks": [{"name": "revenue_cagr", "value": cagr},
+                              {"name": "equity_ratio", "value": eq}]}}}
 
 
 def test_all_ok():
@@ -48,3 +49,10 @@ def test_revenue_series_disagreement():
     yf = {**YF, "annual": [{"fiscal_period": "2025.03", "revenue": 100e8}] + YF["annual"][1:]}
     ch = verify_candidate(_cand(), yf, {"actuals": ROWS}, 195e8)
     assert ch["revenue_series"]["status"] == "mismatch"
+
+
+def test_equity_ratio_checks_gate_value_not_raw_source():
+    ch = verify_candidate(_cand(eq=0.6514), YF, {"actuals": ROWS}, 195e8)   # lệch 5,1 điểm
+    assert ch["equity_ratio"]["status"] == "mismatch"
+    assert verify_candidate(_cand(eq=0.6), YF, {"actuals": ROWS}, 195e8)[
+        "equity_ratio"]["status"] == "ok"

@@ -161,8 +161,11 @@ def test_build_state_keeps_source_language():
 
 
 # ---------------------------------------------------------------- checklist (bước 4)
-def _jd(reg, params, qid, noul):
-    return to_judgment("9999", reg[qid], {"noul": noul}, [], params.jev)
+_EV = [Evidence(text="会社の事業説明", source="有報", kind="filing")]
+
+
+def _jd(reg, params, qid, noul, ev=_EV):
+    return to_judgment("9999", reg[qid], {"noul": noul}, ev, params.jev)
 
 
 def test_backlog_record_code():
@@ -237,3 +240,14 @@ def test_run_from_export_asks_only_listed_codes(tmp_path, monkeypatch, params):
     rc = run.main(["--fundamentals-source", "yfinance", "--from", str(exp),
                    "--data-dir", str(tmp_path), "--tdnet-dir", str(tmp_path / "none")])
     assert rc == 0 and asked == ["9000"]
+
+
+def test_name_only_judgment_never_decides_checklist(reg, params):
+    """noul thấp/cao chỉ từ TÊN → mục checklist None (không phải False, cũng không True)."""
+    js = {"niche_share": _jd(reg, params, "niche_share", 0.05, ev=[]),
+          "recurring_revenue": _jd(reg, params, "recurring_revenue", 0.95, ev=[])}
+    assert js["niche_share"].evidence_label == "name_only"
+    c = build_checklist("9999", js, None, None, params.checklist)
+    by = {i.key: i for i in c.items}
+    assert by["niche_share"].value is None and by["recurring_revenue"].value is None
+    assert c.known == 0

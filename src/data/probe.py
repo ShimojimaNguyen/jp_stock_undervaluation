@@ -73,19 +73,19 @@ def yf_probe(code: str) -> dict:
     return out
 
 
-def yahoo_jp_probe(code: str) -> dict:
+def yahoo_jp_probe(code: str, suffix: str = "/performance") -> dict:
     """Tìm khối 会社予想 trên trang Yahoo JP — CHỈ 2 request (nguồn chặn sau ~85 mã)."""
     import re
 
     import requests
 
     out = {}
-    for suffix in ("/performance",):
-        url = f"https://finance.yahoo.co.jp/quote/{code}.T{suffix}"
+    for sfx in (suffix,):
+        url = f"https://finance.yahoo.co.jp/quote/{code}.T{sfx}"
         try:
             r = requests.get(url, headers={"User-Agent": UA}, timeout=30)
         except Exception as e:  # noqa: BLE001
-            out[suffix or "/"] = f"{type(e).__name__}"
+            out[sfx] = f"{type(e).__name__}"
             continue
         t = r.text.replace('\\"', '"')
         info = {"status": r.status_code, "bytes": len(r.content),
@@ -94,12 +94,13 @@ def yahoo_jp_probe(code: str) -> dict:
         keys = sorted(set(re.findall(r'"([a-zA-Z]*(?:[Ff]orecast|[Ss]ales|[Oo]perating)[a-zA-Z]*)"', t)))
         info["json_keys"] = keys[:60]
         i = t.find("営業利益")
-        for key in ('"performance":', "netSalesYoy", "operatingCashFlow"):
+        for key in ('"performance":', "特色", "連結事業", "事業内容", '"feature"',
+                    '"businessDescription"'):
             k = t.find(key)
             if k >= 0:
                 info[f"json@{key}"] = t[k:k + 1800]
         info["around_op"] = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", t[max(0, i - 300):i + 500]))[:600] if i >= 0 else None
-        out[suffix or "/"] = info
+        out[sfx] = info
     return out
 
 
@@ -107,9 +108,10 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--codes", nargs="+", default=["7203", "6861", "3436"])
     ap.add_argument("--yahoo-jp", default=None, help="thăm dò trang Yahoo JP của MỘT mã")
+    ap.add_argument("--suffix", default="/performance")
     a = ap.parse_args(argv)
     if a.yahoo_jp:
-        print(json.dumps({"yahoo_jp": yahoo_jp_probe(a.yahoo_jp)}, ensure_ascii=False))
+        print(json.dumps({"yahoo_jp": yahoo_jp_probe(a.yahoo_jp, a.suffix)}, ensure_ascii=False))
         return 0
     for c in a.codes:
         print(json.dumps({c: yf_probe(c)}, ensure_ascii=False))

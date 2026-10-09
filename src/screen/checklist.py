@@ -20,7 +20,16 @@ def _jv(judgments: dict[str, Judgment], qid: str) -> tuple[bool | None, list[str
     if j is None:
         return None, []
     v = j.value if isinstance(j.value, bool) else None
+    if j.evidence_label in WEAK_EVIDENCE:
+        # Chỉ có TÊN công ty: Jev yếu đúng ở chỗ quan trọng (skill jev-judgments §2), và
+        # "chưa kết luận được không bao giờ là bằng chứng ngược" (§4.3). Smoke 2026-10-09:
+        # 144 phán đoán name_only ra False hàng loạt — đó là thiếu bằng chứng, không phải
+        # "không có thị phần ngách". Giữ phán đoán thô trong cache, mục checklist = None.
+        v = None
     return v, [f"{j.question_id}@{j.question_version}:{j.evidence_label}"]
+
+
+WEAK_EVIDENCE = {"name_only", "none"}
 
 
 def backlog_is_record(points: list[BacklogPoint] | None, lookback: int) -> bool | None:

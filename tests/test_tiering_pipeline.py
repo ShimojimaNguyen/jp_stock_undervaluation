@@ -10,6 +10,7 @@ from src.contracts import (
     CatalystEvent,
     CatalystStrength,
     CatalystType,
+    Evidence,
     Holder,
     PriceSnapshot,
     QuarterResult,
@@ -48,7 +49,9 @@ def _ohlcv(n=300, close=2000.0, vol=50_000.0):
 
 def _judgments(params, noul=0.9):
     reg = load_registry()
-    return {q: to_judgment("9999", reg[q], {"noul": noul}, [], params.jev)
+    ev = [Evidence(text="防衛向け部品で国内シェア首位。保守契約が売上の7割。", source="有報",
+                   kind="filing")]
+    return {q: to_judgment("9999", reg[q], {"noul": noul}, ev, params.jev)
             for q in ["niche_share", "theme_defense", "recurring_revenue"]}
 
 

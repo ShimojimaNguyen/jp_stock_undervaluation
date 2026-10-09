@@ -9,6 +9,7 @@ cho tiêu đề TDnet KHÔNG khớp rule. Phần đã có trong cache không h�
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 from src.catalyst.tdnet import classify, read_day
@@ -25,6 +26,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--fundamentals-source", default=None)
     ap.add_argument("--tdnet-dir", default=str(ROOT / "data" / "tdnet"))
     ap.add_argument("--data-dir", default=str(ROOT / "data"))
+    ap.add_argument("--from", dest="src", default=None,
+                    help="file export: chỉ hỏi mã ở candidates + awaiting_forecast (đã ghép "
+                         "会社予想 — tự tính lại cổng trên dữ liệu chưa ghép sẽ loại hết)")
     ap.add_argument("--all", action="store_true",
                     help="hỏi mọi mã; mặc định chỉ mã QUA bước 2 (mã khác là NONE, checklist vô dụng)")
     a = ap.parse_args(argv)
@@ -36,9 +40,17 @@ def main(argv: list[str] | None = None) -> int:
     if a.fundamentals_source:
         fs = JsonFundamentalsSource(a.fundamentals_source, base=Path(a.data_dir) / "fundamentals")
         qs = [reg[q] for q in checklist_question_ids(p) if q in reg]
+        wanted = None
+        if a.src:
+            exp = json.loads(Path(a.src).read_text(encoding="utf-8"))
+            wanted = {c["code"] for k in ("candidates", "awaiting_forecast")
+                      for c in exp.get(k, [])}
         for code in fs.codes():
             f = fs.get(code)
-            if not a.all and not growth_gate(f, p.growth).passed:
+            if wanted is not None:
+                if code not in wanted:
+                    continue
+            elif not a.all and not growth_gate(f, p.growth).passed:
                 continue
             items.append(JevItem(code, build_state(code, f.name, f.text_evidence),
                                  f.text_evidence, qs))

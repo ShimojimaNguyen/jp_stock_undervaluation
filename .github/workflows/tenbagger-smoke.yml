@@ -65,12 +65,12 @@ jobs:
           uv run python -m src.diagnostics --data-dir data --source yfinance > "$OUT/diagnostics.json"
           uv run python -c "import json;d=json.load(open('$OUT/diagnostics.json'));print('n',d['n']);print('coverage',d['coverage']);print('none',d['none_reasons'])"
 
-      - name: Jev batch
+      - name: Golden test Jev (chốt hành vi model trên các ca đã khai)
         if: env.HAS_JEV == 'true'
         continue-on-error: true
         env:
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
-        run: uv run python -m src.jev.run --fundamentals-source kabutan
+        run: uv run pytest -m golden -q -p no:warnings -rA 2>&1 | tail -n 30
 
       - name: Pipeline lần 1 (tìm mã chờ 会社予想)
         if: always()
@@ -83,7 +83,21 @@ jobs:
         if: always()
         run: uv run python -m src.data.yahoojp_forecast --from "$OUT/pass1.json" --max 60
 
-      - name: Pipeline lần 2 (đủ 8 bước)
+      - name: Pipeline lần 2 (đã ghép 会社予想, chưa Jev)
+        if: always()
+        run: |
+          uv run python -m src.pipeline --fundamentals-source yfinance \
+            --universe data/universe.json --only-fetched --min-coverage 0 \
+            --out "$OUT/pass2.json"
+
+      - name: Jev batch (mã ở tầng A/B/C + chờ dự báo)
+        if: env.HAS_JEV == 'true'
+        continue-on-error: true
+        env:
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+        run: uv run python -m src.jev.run --fundamentals-source yfinance --from "$OUT/pass2.json"
+
+      - name: Pipeline lần 3 (đủ 8 bước)
         if: always()
         run: |
           uv run python -m src.pipeline --fundamentals-source yfinance \
@@ -94,6 +108,9 @@ jobs:
           d = json.load(open("smoke-out/tenbagger-candidates.json"))
           print("COUNTS", d["counts"])
           print("FAILURES", d["failures"][:10])
+          def chk(c):
+              it = c["scorecard"]["checklist"]["items"]
+              return " ".join(f"{i['key']}={i['value']}" for i in it)
           def line(c):
               sc = c["scorecard"]; v = sc["valuation"]; u = sc["universe"]
               chk = {x["name"]: x["value"] for x in sc["growth"]["checks"]}
@@ -107,6 +124,7 @@ jobs:
                       f"why={c['tier_reasons']}")
           for c in d["candidates"]:
               print("CAND", line(c))
+              print("     checklist:", chk(c), "themes:", c["scorecard"]["checklist"]["themes"])
           for c in d["awaiting_forecast"]:
               print("WAIT", line(c))
           PY

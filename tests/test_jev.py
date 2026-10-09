@@ -207,3 +207,33 @@ def test_build_checklist(reg, params):
 def test_checklist_without_any_data_is_all_none(params):
     c = build_checklist("9999", {}, None, None, params.checklist)
     assert c.score == 0 and c.known == 0
+
+
+def test_run_from_export_asks_only_listed_codes(tmp_path, monkeypatch, params):
+    """Bug: jev.run tự tính lại cổng bước 2 trên dữ liệu yfinance CHƯA ghép 会社予想 → loại hết."""
+    import json as _json
+
+    import src.jev.run as run
+    from src.data.adapters import JsonFundamentalsSource
+    from tests.conftest import make_fundamentals
+
+    fs = JsonFundamentalsSource("yfinance", base=tmp_path / "fundamentals")
+    for c in ("9000", "9001"):
+        fs.write(make_fundamentals(code=c, forecast=None))   # tự tính cổng sẽ trượt
+    exp = tmp_path / "pass2.json"
+    exp.write_text(_json.dumps({"candidates": [{"code": "9000"}], "awaiting_forecast": []}))
+    asked = []
+
+    class FakeClient:
+        def __init__(self, p):
+            pass
+
+        def ask(self, state, questions):
+            asked.append(state["ticker"])
+            return {q.id: {"noul": 0.9} for q in questions}
+
+    monkeypatch.setattr(run, "JevClient", FakeClient)
+    monkeypatch.setattr(run, "ROOT", tmp_path)
+    rc = run.main(["--fundamentals-source", "yfinance", "--from", str(exp),
+                   "--data-dir", str(tmp_path), "--tdnet-dir", str(tmp_path / "none")])
+    assert rc == 0 and asked == ["9000"]

@@ -84,11 +84,18 @@ jobs:
       - name: 会社予想 Yahoo JP (trần 60/ngày, giãn 3s — nguồn chặn sau ~85 mã)
         run: uv run python -m src.data.yahoojp_forecast --from data/pass1.json --max 60
 
-      - name: Jev batch (mã qua bước 2)
+      - name: Pipeline lần 2 (đã ghép 会社予想, chưa Jev)
+        run: |
+          uv run python -m src.pipeline --fundamentals-source yfinance \
+            --universe data/universe.json --min-coverage 0 --out data/pass2.json
+
+      - name: Jev batch (mã ở tầng A/B/C + chờ dự báo)
         if: env.HAS_JEV == 'true'
         env:
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
-        run: uv run python -m src.jev.run --fundamentals-source yfinance || echo "::warning::Jev lỗi một phần"
+        run: |
+          uv run python -m src.jev.run --fundamentals-source yfinance --from data/pass2.json \
+            || echo "::warning::Jev lỗi một phần"
 
       - name: Pipeline 8 bước
         run: |
